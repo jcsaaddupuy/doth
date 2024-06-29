@@ -1,0 +1,40 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.dohProxyBlocklist.serviceName }}
+spec:
+  selector:
+    matchLabels:
+      run: {{ .Values.dohProxyBlocklist.serviceName }}
+  replicas: {{ .Values.dohProxyBlocklist.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        run: {{ .Values.dohProxyBlocklist.serviceName }}
+    spec:
+      containers:
+        - name: {{ .Values.dohProxyBlocklist.serviceName }}
+          image: {{ .Values.dohProxyBlocklist.deployment.image.repository }}
+          command:
+            [
+              "doh-proxy", 
+              "--listen-address=0.0.0.0:{{.Values.dohProxyBlocklist.service.port}}",
+              "--server-address={{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unboundBlocklist.service.port }}"
+            ]
+          ports:
+            - containerPort: {{ .Values.dohProxyBlocklist.service.port }}
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.dohProxyBlocklist.serviceName }}
+  labels:
+    run: {{ .Values.dohProxyBlocklist.serviceName }}
+spec:
+  ports:
+    - port: {{ .Values.dohProxyBlocklist.service.port }}
+      protocol: TCP
+  selector:
+    run: {{ .Values.dohProxyBlocklist.serviceName }}

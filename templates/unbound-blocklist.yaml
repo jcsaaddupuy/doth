@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unbound-blocklist-config-configmap
+  labels:
+    app: unbound-blocklist
+data:
+  # automatically inject filename and content
+  {{ (.Files.Glob "config/unbound-blocklist/unbound.conf").AsConfig | indent 2 }}
+  
+  {{ (.Files.Glob "config/unbound-blocklist/refresh-blacklist.sh").AsConfig | indent 2}}
+
+
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unbound-blocklist
+spec:
+  selector:
+    matchLabels:
+      run: unbound-blocklist
+  replicas: {{ .Values.unboundBlocklist.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        run: unbound-blocklist
+    spec:
+      initContainers:
+      - name: init-myservice
+        image: curlimages/curl
+        command: ['sh', '/opt/unbound/etc/unbound/refresh-blacklist.sh']
+        workingDir: /opt/unbound/etc/unbound/blocklists/
+        
+        # Configuration
+        volumeMounts:
+            - name: unbound-blocklist-config
+              mountPath: /opt/unbound/etc/unbound/refresh-blacklist.sh
+              subPath: refresh-blacklist.sh
+            - name: unbound-blocklist-blocklists
+              mountPath: "/opt/unbound/etc/unbound/blocklists/"
+
+      containers:
+        - name: unbound-blocklist
+          image: {{ .Values.unboundBlocklist.deployment.image.repository }}
+          ports:
+            - containerPort: {{ .Values.unboundBlocklist.service.port }}
+              protocol: UDP
+              name: 'udp-53'
+            - containerPort: {{ .Values.unboundBlocklist.service.port }}
+              protocol: TCP
+              name: 'tcp-53'
+          
+          # liveness : predically resolve a domain
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@127.0.0.1'
+                - cloudflare.com
+            initialDelaySeconds:  {{ .Values.unboundBlocklist.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.unboundBlocklist.deployment.livenessProbe.periodSeconds }}
+          
+          # Configuration
+          volumeMounts:
+          - name: unbound-blocklist-config
+            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            subPath: unbound.conf
+          - name: unbound-blocklist-blocklists
+            mountPath: "/opt/unbound/etc/unbound/blocklists/"
+
+      volumes:
+        - name: unbound-blocklist-config
+          configMap:
+            name: unbound-blocklist-config-configmap
+        - name: unbound-blocklist-blocklists
+          emptyDir: {}
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unbound-blocklist
+  labels:
+    run: unbound-blocklist
+spec:
+  ports:
+    - port:  {{ .Values.unboundBlocklist.service.port }}
+      protocol: TCP
+      name: 'tcp-53'
+    - port:  {{ .Values.unboundBlocklist.service.port }}
+      protocol: UDP
+      name: 'udp-53'
+  selector:
+    run: unbound-blocklist

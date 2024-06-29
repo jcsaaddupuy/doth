@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.unbound.serviceName }}-configmap"
+  labels:
+    app: {{ .Values.unbound.serviceName }}
+data:
+  {{ (.Files.Glob "config/unbound/unbound.conf").AsConfig }}
+
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.unbound.serviceName }}
+spec:
+  selector:
+    matchLabels:
+      run: {{ .Values.unbound.serviceName }}
+  replicas: {{ .Values.unbound.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        run: {{ .Values.unbound.serviceName }}
+    spec:
+      containers:
+        - name: {{ .Values.unbound.serviceName }}
+          image: {{ .Values.unbound.deployment.image.repository }}
+          ports:
+            - containerPort: {{ .Values.unbound.service.port }}
+              protocol: UDP
+              name: 'udp-53'
+            - containerPort: {{ .Values.unbound.service.port }}
+              protocol: TCP
+              name: 'tcp-53'
+          
+          # liveness : predically resolve a domain
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@127.0.0.1'
+                - cloudflare.com
+            initialDelaySeconds:  {{ .Values.unbound.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.unbound.deployment.livenessProbe.periodSeconds }}
+          
+          # Configuration
+          volumeMounts:
+          - name: unbound-volume
+            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            subPath: unbound.conf
+      volumes:
+        - name: unbound-volume
+          configMap:
+            name: unbound-configmap
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.unbound.serviceName }}
+  labels:
+    run: {{ .Values.unbound.serviceName }}
+spec:
+  ports:
+    - port:  {{ .Values.unbound.service.port }}
+      protocol: TCP
+      name: 'tcp-53'
+    - port:  {{ .Values.unbound.service.port }}
+      protocol: UDP
+      name: 'udp-53'
+  selector:
+    run: {{ .Values.unbound.serviceName }}
