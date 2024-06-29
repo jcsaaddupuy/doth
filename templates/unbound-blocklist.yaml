@@ -56,8 +56,8 @@ spec:
             exec:
               command:
                 - drill
-                - '@127.0.0.1'
-                - cloudflare.com
+                - '@{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - {{ .Values.unboundBlocklist.deployment.livenessProbe.healthcheckDomain }}
             initialDelaySeconds:  {{ .Values.unboundBlocklist.deployment.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.unboundBlocklist.deployment.livenessProbe.periodSeconds }}
           

@@ -38,8 +38,8 @@ spec:
             exec:
               command:
                 - drill
-                - '@127.0.0.1'
-                - cloudflare.com
+                - '@{{ .Values.unbound.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - {{ .Values.unbound.deployment.livenessProbe.healthcheckDomain }}
             initialDelaySeconds:  {{ .Values.unbound.deployment.livenessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.unbound.deployment.livenessProbe.periodSeconds }}
           

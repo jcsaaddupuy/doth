@@ -12,6 +12,7 @@ openresty:
 
 unbound:
   serviceName: unbound
+  
 
   deployment:
     replicaCount: 1
@@ -20,6 +21,7 @@ unbound:
       pullPolicy: IfNotPresent
 
     livenessProbe:
+      healthcheckDomain: cloudflare.com
       initialDelaySeconds: 5
       periodSeconds: 60
 
@@ -38,6 +40,7 @@ unboundBlocklist:
       pullPolicy: IfNotPresent
 
     livenessProbe:
+      healthcheckDomain: cloudflare.com
       initialDelaySeconds: 5
       periodSeconds: 60
 
