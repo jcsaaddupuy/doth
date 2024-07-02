@@ -1,0 +1,100 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: unbound-auth-config-configmap
+  labels:
+    app: unbound-auth
+  annotations:
+        checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | sha256sum }}
+data:
+  # automatically inject filename and content
+  unbound.conf: |-
+    {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | quote }}
+  
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unbound-auth
+spec:
+  selector:
+    matchLabels:
+      run: unbound-auth
+  replicas: {{ .Values.unboundAuth.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        run: unbound-auth
+    spec:
+      initContainers:
+      - name: init-root-hints
+        image: curlimages/curl
+        command: ['curl', 'https://www.internic.net/domain/named.root", "-o", "root.hints']
+        workingDir: /opt/unbound/etc/unbound/data
+
+      - name: init-root-key
+        image: {{ .Values.unboundAuth.deployment.image.repository }}
+        command: ['unbound-anchor', '-a", "root.key']
+        workingDir: /opt/unbound/etc/unbound/data
+        
+        # Configuration
+        volumeMounts:
+            - name: unbound-auth-volume
+              mountPath: "/opt/unbound/etc/unbound/data"
+
+      containers:
+        - name: unbound-auth
+          image: {{ .Values.unboundAuth.deployment.image.repository }}
+          ports:
+            - containerPort: {{ .Values.unboundAuth.service.port }}
+              protocol: UDP
+              name: 'udp-53'
+            - containerPort: {{ .Values.unboundAuth.service.port }}
+              protocol: TCP
+              name: 'tcp-53'
+          
+          # liveness : periodically resolve a domain
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@{{ .Values.unboundAuth.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - {{ .Values.unboundAuth.deployment.livenessProbe.healthcheckDomain }}
+            initialDelaySeconds:  {{ .Values.unboundAuth.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.unboundAuth.deployment.livenessProbe.periodSeconds }}
+          
+          # Configuration
+          volumeMounts:
+          - name: unbound-auth-config
+            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            subPath: unbound.conf
+
+          - name: unbound-auth-volume
+            mountPath: "/opt/unbound/etc/unbound/data/"
+
+      volumes:
+        - name: unbound-auth-config
+          configMap:
+            name: unbound-auth-config-configmap
+        - name: unbound-auth-volume
+          emptyDir: {}
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: unbound-auth
+  labels:
+    run: unbound-auth
+spec:
+  ports:
+    - port:  {{ .Values.unboundAuth.service.port }}
+      protocol: TCP
+      name: 'tcp-53'
+    - port:  {{ .Values.unboundAuth.service.port }}
+      protocol: UDP
+      name: 'udp-53'
+  selector:
+    run: unbound-auth

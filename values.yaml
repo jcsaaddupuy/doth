@@ -10,9 +10,22 @@ openresty:
     port: 80
     protocol: TCP
 
-unbound:
-  serviceName: unbound
-  
+unboundAuth:
+  serviceName: unbound-auth
+  config:
+    verbosity: 1
+    logQueries: yes
+
+    trustAnchorFile: "/opt/unbound/etc/unbound/data/root.key"
+    rootHints: "/opt/unbound/etc/unbound/data/root.hints"
+    interface: "0.0.0.0"
+    accessControl: "0.0.0.0/0 allow"
+    includes:
+      - "/opt/unbound/etc/unbound/blocklists/blacklist.conf"
+    forwardZones:
+      - name: "."
+        forwardAddresses:
+          - 9.9.9.9
 
   deployment:
     replicaCount: 1
@@ -28,11 +41,51 @@ unbound:
   service:
     type: ClusterIP
     port: 53
-    protocol: UDP
+
+unbound:
+  serviceName: unbound
+
+  config:
+    verbosity: 0
+    logQueries: no
+    interface: "0.0.0.0"
+    accessControl: "0.0.0.0/0 allow"
+    forwardZones:
+      - name: "."
+        forwardAddresses:
+          - 9.9.9.9
+
+  deployment:
+    replicaCount: 1
+    image:
+      repository: mvance/unbound:latest
+      pullPolicy: IfNotPresent
+
+    livenessProbe:
+      healthcheckDomain: cloudflare.com
+      initialDelaySeconds: 5
+      periodSeconds: 60
+
+  service:
+    type: ClusterIP
+    port: 53
 
 # Unbound configured with blocklists
 unboundBlocklist:
   serviceName: unbound-blocklist
+
+  config:
+    verbosity: 1
+    logQueries: yes
+    interface: "0.0.0.0"
+    accessControl: "0.0.0.0/0 allow"
+    includes:
+      - "/opt/unbound/etc/unbound/blocklists/blacklist.conf"
+    forwardZones:
+      - name: "."
+        forwardAddresses:
+          - 9.9.9.9 # FIXME
+
   deployment:
     replicaCount: 1
     image:
@@ -47,7 +100,6 @@ unboundBlocklist:
   service:
     type: ClusterIP
     port: 53
-    protocol: UDP
 
 dohProxy:
   serviceName: doh-proxy
@@ -73,7 +125,6 @@ dohProxyBlocklist:
     type: ClusterIP
     port: 3000
     protocol: TCP
-    
 # imagePullSecrets: []
 # nameOverride: ""
 # fullnameOverride: ""

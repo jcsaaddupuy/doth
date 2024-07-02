@@ -4,8 +4,11 @@ metadata:
   name: "{{ .Values.unbound.serviceName }}-configmap"
   labels:
     app: {{ .Values.unbound.serviceName }}
+  annotations:
+        checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unbound | sha256sum }}
 data:
-  {{ (.Files.Glob "config/unbound/unbound.conf").AsConfig }}
+  unbound.conf: |-
+    {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unbound | quote }}
 
 --- 
 apiVersion: apps/v1

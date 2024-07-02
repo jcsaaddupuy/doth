@@ -4,12 +4,16 @@ metadata:
   name: unbound-blocklist-config-configmap
   labels:
     app: unbound-blocklist
+  annotations:
+        checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundBlocklist | sha256sum }}
+        checksum/refresh-blacklist.sh: {{ (.Files.Get "config/unbound-blocklist/refresh-blacklist.sh") | sha256sum }}
 data:
   # automatically inject filename and content
-  {{ (.Files.Glob "config/unbound-blocklist/unbound.conf").AsConfig | indent 2 }}
-  
-  {{ (.Files.Glob "config/unbound-blocklist/refresh-blacklist.sh").AsConfig | indent 2}}
+  unbound.conf: |-
+    {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundBlocklist | quote }}
 
+  refresh-blacklist.sh: |-
+    {{ (.Files.Get "config/blocklist/refresh-blacklist.sh")| quote }}
 
 --- 
 apiVersion: apps/v1
