@@ -12,12 +12,14 @@ echo "server:" >> blacklist.conf
 CANARY_DOMAIN=${CANARY_DOMAIN:-"blockme.localhost"}
 echo "local-zone: \"${CANARY_DOMAIN}\" refuse" >> blacklist.conf
 
-echo "Fetching StevenBlack ..."
-curl -s 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts' | \
-	grep ^0.0.0.0 - | \
+{{- range .config.blocklists }}
+echo "Fetching {{.name}} ..."
+curl -s '{{.url}}' | \
+	grep ^{{.hostFileIpPattern | default "0.0.0.0"}} - | \
         sed 's/ #.*$//;
-        s/^0.0.0.0 \(.*\)/local-zone: "\1" refuse/' \
+        s/^{{.hostFileIpPattern | default "0.0.0.0"}} \(.*\)/local-zone: "\1" refuse/' \
         >> blacklist.conf;
+{{- end }}
 
 
 echo "$(cat blacklist.conf | wc -l) domains blocked"

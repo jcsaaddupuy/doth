@@ -1,13 +1,13 @@
+{{- if eq (.Values.unboundAuth.enabled | toString) "true" -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: unbound-auth-config-configmap
+  name: "{{ .Values.unboundAuth.serviceName }}-configmap"
   labels:
-    app: unbound-auth
+    app: {{ .Values.unboundAuth.serviceName }}
   annotations:
         checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | sha256sum }}
 data:
-  # automatically inject filename and content
   unbound.conf: |-
     {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | quote }}
   
@@ -16,21 +16,21 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: unbound-auth
+  name: {{ .Values.unboundAuth.serviceName }}
 spec:
   selector:
     matchLabels:
-      run: unbound-auth
+      run: {{ .Values.unboundAuth.serviceName }}
   replicas: {{ .Values.unboundAuth.deployment.replicaCount }}
   template:
     metadata:
       labels:
-        run: unbound-auth
+        run: {{ .Values.unboundAuth.serviceName }}
     spec:
       initContainers:
       - name: init-root-hints
         image: curlimages/curl
-        command: ['curl', 'https://www.internic.net/domain/named.root", "-o", "root.hints']
+        command: ["curl", "{{ .Values.unboundAuth.config.rootHintsUrl }}", "-o", "root.hints"]
         workingDir: /opt/unbound/etc/unbound/data
 
       - name: init-root-key
@@ -40,11 +40,11 @@ spec:
         
         # Configuration
         volumeMounts:
-            - name: unbound-auth-volume
+            - name: "{{ .Values.unboundAuth.serviceName }}-volume"
               mountPath: "/opt/unbound/etc/unbound/data"
 
       containers:
-        - name: unbound-auth
+        - name: {{ .Values.unboundAuth.serviceName }}
           image: {{ .Values.unboundAuth.deployment.image.repository }}
           ports:
             - containerPort: {{ .Values.unboundAuth.service.port }}
@@ -66,18 +66,18 @@ spec:
           
           # Configuration
           volumeMounts:
-          - name: unbound-auth-config
+          - name: "{{ .Values.unboundAuth.serviceName }}-config"
             mountPath: /opt/unbound/etc/unbound/unbound.conf
             subPath: unbound.conf
 
-          - name: unbound-auth-volume
+          - name: "{{ .Values.unboundAuth.serviceName }}-volume"
             mountPath: "/opt/unbound/etc/unbound/data/"
 
       volumes:
-        - name: unbound-auth-config
+        - name: "{{ .Values.unboundAuth.serviceName }}-config"
           configMap:
-            name: unbound-auth-config-configmap
-        - name: unbound-auth-volume
+            name: "{{ .Values.unboundAuth.serviceName }}-configmap"
+        - name: "{{ .Values.unboundAuth.serviceName }}-volume"
           emptyDir: {}
 
 
@@ -85,10 +85,11 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: unbound-auth
+  name: {{ .Values.unboundAuth.serviceName }}
   labels:
-    run: unbound-auth
+    run: {{ .Values.unboundAuth.serviceName }}
 spec:
+  clusterIP: {{ .Values.unboundAuth.service.clusterIP }}
   ports:
     - port:  {{ .Values.unboundAuth.service.port }}
       protocol: TCP
@@ -97,4 +98,5 @@ spec:
       protocol: UDP
       name: 'udp-53'
   selector:
-    run: unbound-auth
+    run: {{ .Values.unboundAuth.serviceName }}
+{{- end }}

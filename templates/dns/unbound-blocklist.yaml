@@ -1,3 +1,4 @@
+{{- if eq (.Values.unboundBlocklist.enabled | toString) "true" -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -6,14 +7,14 @@ metadata:
     app: unbound-blocklist
   annotations:
         checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundBlocklist | sha256sum }}
-        checksum/refresh-blacklist.sh: {{ (.Files.Get "config/unbound-blocklist/refresh-blacklist.sh") | sha256sum }}
+        checksum/refresh-blacklist.sh: {{ tpl (.Files.Get "config/blocklist/refresh-blacklist.sh") .Values.unboundBlocklist | sha256sum }}
 data:
   # automatically inject filename and content
   unbound.conf: |-
     {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundBlocklist | quote }}
 
   refresh-blacklist.sh: |-
-    {{ (.Files.Get "config/blocklist/refresh-blacklist.sh")| quote }}
+    {{ tpl (.Files.Get "config/blocklist/refresh-blacklist.sh") .Values.unboundBlocklist | quote }}
 
 --- 
 apiVersion: apps/v1
@@ -35,6 +36,9 @@ spec:
         image: curlimages/curl
         command: ['sh', '/opt/unbound/etc/unbound/refresh-blacklist.sh']
         workingDir: /opt/unbound/etc/unbound/blocklists/
+        env:
+          - name: CANARY_DOMAIN
+            value: {{ .Values.unboundBlocklist.config.canaryDomain }}
         
         # Configuration
         volumeMounts:
@@ -98,3 +102,4 @@ spec:
       name: 'udp-53'
   selector:
     run: unbound-blocklist
+{{- end }}

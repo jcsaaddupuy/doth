@@ -11,6 +11,7 @@ openresty:
     protocol: TCP
 
 unboundAuth:
+  enabled: "true"
   serviceName: unbound-auth
   config:
     verbosity: 1
@@ -20,12 +21,8 @@ unboundAuth:
     rootHints: "/opt/unbound/etc/unbound/data/root.hints"
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
-    includes:
-      - "/opt/unbound/etc/unbound/blocklists/blacklist.conf"
-    forwardZones:
-      - name: "."
-        forwardAddresses:
-          - 9.9.9.9
+
+    rootHintsUrl: https://www.internic.net/domain/named.root
 
   deployment:
     replicaCount: 1
@@ -41,9 +38,12 @@ unboundAuth:
   service:
     type: ClusterIP
     port: 53
+    clusterIP: 10.96.0.53
 
 unbound:
+  # enabled: true
   serviceName: unbound
+  enabled: "true"
 
   config:
     verbosity: 0
@@ -53,7 +53,7 @@ unbound:
     forwardZones:
       - name: "."
         forwardAddresses:
-          - 9.9.9.9
+          - 10.96.0.53
 
   deployment:
     replicaCount: 1
@@ -73,6 +73,7 @@ unbound:
 # Unbound configured with blocklists
 unboundBlocklist:
   serviceName: unbound-blocklist
+  enabled: "true"
 
   config:
     verbosity: 1
@@ -84,7 +85,15 @@ unboundBlocklist:
     forwardZones:
       - name: "."
         forwardAddresses:
-          - 9.9.9.9 # FIXME
+          - 10.96.0.53
+    
+    canaryDomain: 'blockme.localhost'
+
+    blocklists:
+      - name: StevenBlack
+        url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+        # hostFileIpPattern: "0.0.0.0"
+
 
   deployment:
     replicaCount: 1
@@ -103,6 +112,12 @@ unboundBlocklist:
 
 dohProxy:
   serviceName: doh-proxy
+  enabled: "{{ .Values.unbound.enabled }}"
+  config:
+    bindAddress: "0.0.0.0"
+    listenAddress: "{{.Values.dohProxy.config.bindAddress}}:{{.Values.dohProxy.service.port}}"
+    serverAddress: "{{ .Values.unbound.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unbound.service.port }}"
+
   deployment:
     replicaCount: 1
     image:
@@ -115,6 +130,14 @@ dohProxy:
 
 dohProxyBlocklist:
   serviceName: doh-proxy-blocklist
+  enabled: "{{ .Values.unboundBlocklist.enabled }}"
+
+  config:
+    bindAddress: "0.0.0.0"
+    listenAddress: "{{.Values.dohProxyBlocklist.config.bindAddress}}:{{.Values.dohProxyBlocklist.service.port}}"
+    serverAddress: "{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unboundBlocklist.service.port }}"
+
+
   deployment:
     replicaCount: 1
     image:
@@ -125,43 +148,37 @@ dohProxyBlocklist:
     type: ClusterIP
     port: 3000
     protocol: TCP
-# imagePullSecrets: []
-# nameOverride: ""
-# fullnameOverride: ""
+ 
+ingress:
+  name: doh-ingress
+  enabled: "true"
 
-# podAnnotations: {}
-# podLabels: {}
+  rootDomain: example.fr
 
-# podSecurityContext: {}
-#   # fsGroup: 2000
+  certManager:
+    issuer: "letsencrypt-staging"
+  
+  tls:
+    secretName: "{{.Values.ingress.name}}-tls"
 
-# securityContext: {}
-#   # capabilities:
-#   #   drop:
-#   #   - ALL
-#   # readOnlyRootFilesystem: true
-#   # runAsNonRoot: true
-#   # runAsUser: 1000
+  hosts:
+    - host: "ns1.{{.Values.ingress.rootDomain}}"
+      enabled: "{{ .Values.dohProxy.enabled }}"
+      paths:
+        - path: /
+          backend:
+              serviceName: "{{ .Values.dohProxy.serviceName }}"
+              servicePort: "{{ .Values.dohProxy.service.port }}"
 
-# service:
-#   type: ClusterIP
-#   port: 80
+    - host: "ns2.{{.Values.ingress.rootDomain}}"
+      enabled: "{{ .Values.dohProxyBlocklist.enabled }}"
+      paths:
+        - path: /
+          backend:
+              serviceName: "{{ .Values.dohProxyBlocklist.serviceName }}"
+              servicePort: "{{ .Values.dohProxyBlocklist.service.port }}"
 
-# # ingress:
-# #   enabled: false
-# #   className: ""
-# #   annotations: {}
-# #     # kubernetes.io/ingress.class: nginx
-# #     # kubernetes.io/tls-acme: "true"
-# #   hosts:
-# #     - host: chart-example.local
-# #       paths:
-# #         - path: /
-# #           pathType: ImplementationSpecific
-# #   tls: []
-# #   #  - secretName: chart-example-tls
-# #   #    hosts:
-# #   #      - chart-example.local
+# https://www.haproxy.com/documentation/kubernetes-ingress/ingress-tutorials/terminate-ssl/#sidebar
 
 # resources: {}
 #   # We usually recommend not to specify default resources and to leave this as a conscious
@@ -175,14 +192,6 @@ dohProxyBlocklist:
 #   #   cpu: 100m
 #   #   memory: 128Mi
 
-# livenessProbe:
-#   httpGet:
-#     path: /
-#     port: http
-# readinessProbe:
-#   httpGet:
-#     path: /
-#     port: http
 
 # # autoscaling:
 # #   enabled: false

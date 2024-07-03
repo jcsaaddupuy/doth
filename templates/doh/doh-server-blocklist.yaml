@@ -1,3 +1,4 @@
+{{- if eq (.Values.dohProxyBlocklist.enabled | toString) "true" -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -17,10 +18,10 @@ spec:
         - name: {{ .Values.dohProxyBlocklist.serviceName }}
           image: {{ .Values.dohProxyBlocklist.deployment.image.repository }}
           command:
-            [
+              [
               "doh-proxy", 
-              "--listen-address=0.0.0.0:{{.Values.dohProxyBlocklist.service.port}}",
-              "--server-address={{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unboundBlocklist.service.port }}"
+              "--listen-address={{ tpl (.Values.dohProxyBlocklist.config.listenAddress) . }}",
+              "--server-address={{ tpl (.Values.dohProxyBlocklist.config.serverAddress) . }}"
             ]
           ports:
             - containerPort: {{ .Values.dohProxyBlocklist.service.port }}
@@ -38,3 +39,4 @@ spec:
       protocol: TCP
   selector:
     run: {{ .Values.dohProxyBlocklist.serviceName }}
+{{- end }}

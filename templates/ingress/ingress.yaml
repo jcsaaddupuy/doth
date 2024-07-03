@@ -1,0 +1,37 @@
+{{- if eq (.Values.ingress.enabled | toString) "true" -}}
+{{- $dot := . }}
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ .Values.ingress.name }}
+  annotations:
+    cert-manager.io/issuer: {{ .Values.ingress.certManager.issuer | default "letsencrypt-staging" | quote }}
+spec:
+  tls:
+    - hosts:
+        {{- range .Values.ingress.hosts }}
+          {{- $enabled := (tpl (tpl .enabled $dot | toString) $dot) }}
+          {{- if eq $enabled "true" }}
+        - {{ tpl .host $dot }}
+          {{- end }}
+        {{- end }}
+      secretName: "{{ tpl .Values.ingress.tls.secretName . }}"
+  rules:
+    {{- range .Values.ingress.hosts }}
+      {{- $enabled := (tpl (tpl .enabled $dot | toString) $dot) }}
+      {{- if eq $enabled "true" }}
+    - host: "{{ tpl .host $dot }}"
+      http:
+        paths:
+          {{- range .paths }} 
+          - path: /
+            backend:
+              service:
+                name: "{{ tpl .backend.serviceName $dot }}"
+                port: 
+                  number: "{{ tpl .backend.servicePort $dot }}"
+          {{- end }}
+      {{- end }}
+    {{- end }}
+{{- end }}

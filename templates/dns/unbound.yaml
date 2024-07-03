@@ -1,3 +1,4 @@
+{{- if eq (.Values.unbound.enabled | toString) "true" -}}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -72,3 +73,4 @@ spec:
       name: 'udp-53'
   selector:
     run: {{ .Values.unbound.serviceName }}
+{{- end }}

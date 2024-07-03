@@ -1,3 +1,4 @@
+{{- if eq (.Values.dohProxy.enabled | toString) "true" -}}
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -19,8 +20,8 @@ spec:
           command:
             [
               "doh-proxy", 
-              "--listen-address=0.0.0.0:{{.Values.dohProxy.service.port}}",
-              "--server-address={{ .Values.unbound.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unbound.service.port }}"
+              "--listen-address={{ tpl (.Values.dohProxy.config.listenAddress) . }}",
+              "--server-address={{ tpl (.Values.dohProxy.config.serverAddress) . }}"
             ]
           ports:
             - containerPort: {{ .Values.dohProxy.service.port }}
@@ -38,3 +39,4 @@ spec:
       protocol: TCP
   selector:
     run: {{ .Values.dohProxy.serviceName }}
+{{- end }}
