@@ -1,13 +1,17 @@
 {{- if eq (.Values.ingress.enabled | toString) "true" -}}
 {{- $dot := . }}
 
-apiVersion: extensions/v1beta1
+apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ .Values.ingress.name }}
   annotations:
+    ingress.class: {{ .Values.ingress.class }}
+    {{- if eq .Values.ingress.tls.enabled "true" }}
     cert-manager.io/issuer: {{ .Values.ingress.certManager.issuer | default "letsencrypt-staging" | quote }}
+    {{- end }}
 spec:
+  {{- if eq .Values.ingress.tls.enabled "true" }}
   tls:
     - hosts:
         {{- range .Values.ingress.hosts }}
@@ -17,6 +21,7 @@ spec:
           {{- end }}
         {{- end }}
       secretName: "{{ tpl .Values.ingress.tls.secretName . }}"
+  {{- end }}
   rules:
     {{- range .Values.ingress.hosts }}
       {{- $enabled := (tpl (tpl .enabled $dot | toString) $dot) }}
@@ -26,11 +31,12 @@ spec:
         paths:
           {{- range .paths }} 
           - path: /
+            pathType: Prefix
             backend:
               service:
                 name: "{{ tpl .backend.serviceName $dot }}"
                 port: 
-                  number: "{{ tpl .backend.servicePort $dot }}"
+                  number: {{ tpl .backend.servicePort $dot }}
           {{- end }}
       {{- end }}
     {{- end }}

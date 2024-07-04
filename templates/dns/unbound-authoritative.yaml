@@ -9,7 +9,7 @@ metadata:
         checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | sha256sum }}
 data:
   unbound.conf: |-
-    {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | quote }}
+{{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundAuth | nindent 4 }}
   
 
 ---
@@ -32,11 +32,19 @@ spec:
         image: curlimages/curl
         command: ["curl", "{{ .Values.unboundAuth.config.rootHintsUrl }}", "-o", "root.hints"]
         workingDir: /opt/unbound/etc/unbound/data
+        securityContext:
+          runAsUser: 0 # FIXME, may not run as root
+        # Configuration
+        volumeMounts:
+            - name: "{{ .Values.unboundAuth.serviceName }}-volume"
+              mountPath: "/opt/unbound/etc/unbound/data"
 
       - name: init-root-key
         image: {{ .Values.unboundAuth.deployment.image.repository }}
-        command: ['unbound-anchor', '-a", "root.key']
+        command: ['unbound-anchor', '-a', 'root.key']
         workingDir: /opt/unbound/etc/unbound/data
+        securityContext:
+          runAsUser: 0
         
         # Configuration
         volumeMounts:
@@ -55,14 +63,14 @@ spec:
               name: 'tcp-53'
           
           # liveness : periodically resolve a domain
-          livenessProbe:
-            exec:
-              command:
-                - drill
-                - '@{{ .Values.unboundAuth.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
-                - {{ .Values.unboundAuth.deployment.livenessProbe.healthcheckDomain }}
-            initialDelaySeconds:  {{ .Values.unboundAuth.deployment.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.unboundAuth.deployment.livenessProbe.periodSeconds }}
+          # livenessProbe:
+          #   exec:
+          #     command:
+          #       - drill
+          #       - '@{{ .Values.unboundAuth.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+          #       - {{ .Values.unboundAuth.deployment.livenessProbe.healthcheckDomain }}
+          #   initialDelaySeconds:  {{ .Values.unboundAuth.deployment.livenessProbe.initialDelaySeconds }}
+          #   periodSeconds: {{ .Values.unboundAuth.deployment.livenessProbe.periodSeconds }}
           
           # Configuration
           volumeMounts:
@@ -94,9 +102,11 @@ spec:
     - port:  {{ .Values.unboundAuth.service.port }}
       protocol: TCP
       name: 'tcp-53'
+      targetPort: {{ .Values.unboundAuth.service.targetPort }}
     - port:  {{ .Values.unboundAuth.service.port }}
       protocol: UDP
       name: 'udp-53'
+      targetPort: {{ .Values.unboundAuth.service.targetPort }}
   selector:
     run: {{ .Values.unboundAuth.serviceName }}
 {{- end }}

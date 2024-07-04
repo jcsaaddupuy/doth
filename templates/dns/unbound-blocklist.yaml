@@ -11,10 +11,10 @@ metadata:
 data:
   # automatically inject filename and content
   unbound.conf: |-
-    {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundBlocklist | quote }}
+{{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundBlocklist | nindent 4 }}
 
   refresh-blacklist.sh: |-
-    {{ tpl (.Files.Get "config/blocklist/refresh-blacklist.sh") .Values.unboundBlocklist | quote }}
+{{ tpl (.Files.Get "config/blocklist/refresh-blacklist.sh") .Values.unboundBlocklist | nindent 4 }}
 
 --- 
 apiVersion: apps/v1
@@ -36,6 +36,8 @@ spec:
         image: curlimages/curl
         command: ['sh', '/opt/unbound/etc/unbound/refresh-blacklist.sh']
         workingDir: /opt/unbound/etc/unbound/blocklists/
+        securityContext:
+          runAsUser: 0
         env:
           - name: CANARY_DOMAIN
             value: {{ .Values.unboundBlocklist.config.canaryDomain }}
@@ -49,6 +51,18 @@ spec:
               mountPath: "/opt/unbound/etc/unbound/blocklists/"
 
       containers:
+        - name: unbound-blocklist-debug
+          image: {{ .Values.unboundBlocklist.deployment.image.repository }}
+          command: ["sleep", "1000"]
+
+          # Configuration
+          volumeMounts:
+          - name: unbound-blocklist-config
+            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            subPath: unbound.conf
+          - name: unbound-blocklist-blocklists
+            mountPath: "/opt/unbound/etc/unbound/blocklists/"
+
         - name: unbound-blocklist
           image: {{ .Values.unboundBlocklist.deployment.image.repository }}
           ports:
@@ -60,14 +74,14 @@ spec:
               name: 'tcp-53'
           
           # liveness : predically resolve a domain
-          livenessProbe:
-            exec:
-              command:
-                - drill
-                - '@{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
-                - {{ .Values.unboundBlocklist.deployment.livenessProbe.healthcheckDomain }}
-            initialDelaySeconds:  {{ .Values.unboundBlocklist.deployment.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.unboundBlocklist.deployment.livenessProbe.periodSeconds }}
+          # livenessProbe:
+          #   exec:
+          #     command:
+          #       - drill
+          #       - '@{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+          #       - {{ .Values.unboundBlocklist.deployment.livenessProbe.healthcheckDomain }}
+          #   initialDelaySeconds:  {{ .Values.unboundBlocklist.deployment.livenessProbe.initialDelaySeconds }}
+          #   periodSeconds: {{ .Values.unboundBlocklist.deployment.livenessProbe.periodSeconds }}
           
           # Configuration
           volumeMounts:
@@ -97,9 +111,11 @@ spec:
     - port:  {{ .Values.unboundBlocklist.service.port }}
       protocol: TCP
       name: 'tcp-53'
+      targetPort: {{ .Values.unboundBlocklist.service.targetPort }}
     - port:  {{ .Values.unboundBlocklist.service.port }}
       protocol: UDP
       name: 'udp-53'
+      targetPort: {{ .Values.unboundBlocklist.service.targetPort }}
   selector:
     run: unbound-blocklist
 {{- end }}

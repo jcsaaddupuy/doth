@@ -9,7 +9,7 @@ metadata:
         checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unbound | sha256sum }}
 data:
   unbound.conf: |-
-    {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unbound | quote }}
+{{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unbound | nindent 4 }}
 
 --- 
 apiVersion: apps/v1
@@ -38,14 +38,14 @@ spec:
               name: 'tcp-53'
           
           # liveness : predically resolve a domain
-          livenessProbe:
-            exec:
-              command:
-                - drill
-                - '@{{ .Values.unbound.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
-                - {{ .Values.unbound.deployment.livenessProbe.healthcheckDomain }}
-            initialDelaySeconds:  {{ .Values.unbound.deployment.livenessProbe.initialDelaySeconds }}
-            periodSeconds: {{ .Values.unbound.deployment.livenessProbe.periodSeconds }}
+          # livenessProbe:
+          #   exec:
+          #     command:
+          #       - drill
+          #       - '@{{ .Values.unbound.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+          #       - {{ .Values.unbound.deployment.livenessProbe.healthcheckDomain }}
+          #   initialDelaySeconds:  {{ .Values.unbound.deployment.livenessProbe.initialDelaySeconds }}
+          #   periodSeconds: {{ .Values.unbound.deployment.livenessProbe.periodSeconds }}
           
           # Configuration
           volumeMounts:
@@ -64,13 +64,16 @@ metadata:
   labels:
     run: {{ .Values.unbound.serviceName }}
 spec:
+  # type: {{ .Values.unbound.service.type }}
   ports:
     - port:  {{ .Values.unbound.service.port }}
       protocol: TCP
-      name: 'tcp-53'
+      name: "tcp-{{ .Values.unbound.service.port }}"
+      targetPort: {{ .Values.unbound.service.targetPort }}
     - port:  {{ .Values.unbound.service.port }}
       protocol: UDP
-      name: 'udp-53'
+      name: "udp-{{ .Values.unbound.service.port }}"
+      targetPort: {{ .Values.unbound.service.targetPort }}
   selector:
     run: {{ .Values.unbound.serviceName }}
 {{- end }}

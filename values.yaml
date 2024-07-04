@@ -15,7 +15,7 @@ unboundAuth:
   serviceName: unbound-auth
   config:
     verbosity: 1
-    logQueries: yes
+    logQueries: "yes"
 
     trustAnchorFile: "/opt/unbound/etc/unbound/data/root.key"
     rootHints: "/opt/unbound/etc/unbound/data/root.hints"
@@ -37,7 +37,8 @@ unboundAuth:
 
   service:
     type: ClusterIP
-    port: 53
+    port: 5300
+    targetPort: 53
     clusterIP: 10.96.0.53
 
 unbound:
@@ -47,13 +48,13 @@ unbound:
 
   config:
     verbosity: 0
-    logQueries: no
+    logQueries: "yes"
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
     forwardZones:
       - name: "."
         forwardAddresses:
-          - 10.96.0.53
+          - 10.96.0.53@5300
 
   deployment:
     replicaCount: 1
@@ -68,7 +69,9 @@ unbound:
 
   service:
     type: ClusterIP
-    port: 53
+    port: 5300
+    targetPort: 53
+    
 
 # Unbound configured with blocklists
 unboundBlocklist:
@@ -77,15 +80,16 @@ unboundBlocklist:
 
   config:
     verbosity: 1
-    logQueries: yes
+    logQueries: "yes"
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
     includes:
       - "/opt/unbound/etc/unbound/blocklists/blacklist.conf"
     forwardZones:
       - name: "."
+        # unbound auth clusterIP
         forwardAddresses:
-          - 10.96.0.53
+          - 10.96.0.53@5300
     
     canaryDomain: 'blockme.localhost'
 
@@ -107,12 +111,13 @@ unboundBlocklist:
       periodSeconds: 60
 
   service:
-    type: ClusterIP
-    port: 53
+    # type: ClusterIP
+    port: 5300
+    targetPort: 53
 
 dohProxy:
   serviceName: doh-proxy
-  enabled: "{{ .Values.unbound.enabled }}"
+  enabled: "true"
   config:
     bindAddress: "0.0.0.0"
     listenAddress: "{{.Values.dohProxy.config.bindAddress}}:{{.Values.dohProxy.service.port}}"
@@ -130,7 +135,7 @@ dohProxy:
 
 dohProxyBlocklist:
   serviceName: doh-proxy-blocklist
-  enabled: "{{ .Values.unboundBlocklist.enabled }}"
+  enabled: "true"
 
   config:
     bindAddress: "0.0.0.0"
@@ -151,7 +156,9 @@ dohProxyBlocklist:
  
 ingress:
   name: doh-ingress
-  enabled: "true"
+  class: "haproxy"
+  # enabled: "true"
+  enabled: "false"
 
   rootDomain: example.fr
 
@@ -159,24 +166,48 @@ ingress:
     issuer: "letsencrypt-staging"
   
   tls:
+    enabled: "false"
     secretName: "{{.Values.ingress.name}}-tls"
 
   hosts:
     - host: "ns1.{{.Values.ingress.rootDomain}}"
-      enabled: "{{ .Values.dohProxy.enabled }}"
+      enabled: "true"
       paths:
         - path: /
           backend:
               serviceName: "{{ .Values.dohProxy.serviceName }}"
-              servicePort: "{{ .Values.dohProxy.service.port }}"
+              servicePort: "{{int .Values.dohProxy.service.port }}"
 
     - host: "ns2.{{.Values.ingress.rootDomain}}"
-      enabled: "{{ .Values.dohProxyBlocklist.enabled }}"
+      enabled: "true"
       paths:
         - path: /
           backend:
               serviceName: "{{ .Values.dohProxyBlocklist.serviceName }}"
-              servicePort: "{{ .Values.dohProxyBlocklist.service.port }}"
+              servicePort: "{{ int .Values.dohProxyBlocklist.service.port }}"
+
+tcp:
+   enabled: "true"
+   services:
+    - name: unbound-dot
+      
+      frontend:
+        port: 853
+        ssl: true
+        ssl_certificate: example-cert
+
+      backend:
+        service: unbound
+        port: 5300
+
+    - name: unbound-tcp
+      serviceName: unbound
+      frontend:
+        port: 53
+
+      backend:
+        service: unbound
+        port: 5300
 
 # https://www.haproxy.com/documentation/kubernetes-ingress/ingress-tutorials/terminate-ssl/#sidebar
 
