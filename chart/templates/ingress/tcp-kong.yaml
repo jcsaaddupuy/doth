@@ -11,7 +11,7 @@ kind: TCPIngress
 metadata:
   name: {{.name}}
   annotations:
-    kubernetes.io/ingress.class: {{.Values.ingress.class}}
+    kubernetes.io/ingress.class: {{$dot.Values.ingress.class}}
 spec:
   {{ if eq ( .tls | toString) "true" }}
   tls:

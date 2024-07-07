@@ -11,7 +11,7 @@ metadata:
     cert-manager.io/issuer: {{ .Values.ingress.certManager.issuer | default "letsencrypt-staging" | quote }}
     {{- end }}
 spec:
-  ingressClassName:  {{ .Values.ingress.class }}
+  ingressClassName:  {{$dot.Values.ingress.class}}
   {{- if eq .Values.ingress.tls.enabled "true" }}
   tls:
     - hosts:
@@ -41,45 +41,6 @@ spec:
           {{- end }}
       {{- end }}
     {{- end }}
-
-# ---
-# apiVersion: configuration.konghq.com/v1beta1
-# kind: TCPIngress
-# metadata:
-#   name: dot
-#   annotations:
-#     kubernetes.io/ingress.class: kong
-# spec:
-#   tls:
-#   - secretName: example-cert
-#     hosts:
-#       - ns1.example.fr
-#       - ns2.example.fr
-#   rules:
-#   - host: ns1.example.fr
-#     port: 853
-#     backend:
-#       serviceName: unbound
-#       servicePort: 5300
-#   - host: ns2.example.fr
-#     port: 853
-#     backend:
-#       serviceName: unbound
-#       servicePort: 5300
-
-# ---
-# apiVersion: configuration.konghq.com/v1beta1
-# kind: TCPIngress
-# metadata:
-#   name: dns
-#   annotations:
-#     kubernetes.io/ingress.class: kong
-# spec:
-#   rules:
-#   - port: 5353
-#     backend:
-#       serviceName: unbound-auth
-#       servicePort: 5300
 
 {{- end }}
 {{- end }}
