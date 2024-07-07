@@ -1,16 +1,17 @@
 {{- if eq (.Values.ingress.enabled | toString) "true" -}}
+{{- if eq (.Values.ingress.class | toString) "kong" -}}
 {{- $dot := . }}
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ .Values.ingress.name }}
+  name:  {{ .Values.ingress.name }}
   annotations:
-    ingress.class: {{ .Values.ingress.class }}
+    konghq.com/strip-path: 'true'
     {{- if eq .Values.ingress.tls.enabled "true" }}
     cert-manager.io/issuer: {{ .Values.ingress.certManager.issuer | default "letsencrypt-staging" | quote }}
     {{- end }}
 spec:
+  ingressClassName:  {{ .Values.ingress.class }}
   {{- if eq .Values.ingress.tls.enabled "true" }}
   tls:
     - hosts:
@@ -26,7 +27,7 @@ spec:
     {{- range .Values.ingress.hosts }}
       {{- $enabled := (tpl (tpl .enabled $dot | toString) $dot) }}
       {{- if eq $enabled "true" }}
-    - host: "{{ tpl .host $dot }}"
+    - host: {{ tpl .host $dot }}
       http:
         paths:
           {{- range .paths }} 
@@ -34,10 +35,51 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: "{{ tpl .backend.serviceName $dot }}"
+                name: {{ tpl .backend.serviceName $dot }}
                 port: 
                   number: {{ tpl .backend.servicePort $dot }}
           {{- end }}
       {{- end }}
     {{- end }}
+
+# ---
+# apiVersion: configuration.konghq.com/v1beta1
+# kind: TCPIngress
+# metadata:
+#   name: dot
+#   annotations:
+#     kubernetes.io/ingress.class: kong
+# spec:
+#   tls:
+#   - secretName: example-cert
+#     hosts:
+#       - ns1.example.fr
+#       - ns2.example.fr
+#   rules:
+#   - host: ns1.example.fr
+#     port: 853
+#     backend:
+#       serviceName: unbound
+#       servicePort: 5300
+#   - host: ns2.example.fr
+#     port: 853
+#     backend:
+#       serviceName: unbound
+#       servicePort: 5300
+
+# ---
+# apiVersion: configuration.konghq.com/v1beta1
+# kind: TCPIngress
+# metadata:
+#   name: dns
+#   annotations:
+#     kubernetes.io/ingress.class: kong
+# spec:
+#   rules:
+#   - port: 5353
+#     backend:
+#       serviceName: unbound-auth
+#       servicePort: 5300
+
+{{- end }}
 {{- end }}

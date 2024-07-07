@@ -37,6 +37,7 @@ unboundAuth:
 
   service:
     type: ClusterIP
+    #type:  LoadBalancer
     port: 5300
     targetPort: 53
     clusterIP: 10.96.0.53
@@ -69,6 +70,7 @@ unbound:
 
   service:
     type: ClusterIP
+    # #type:  LoadBalancer
     port: 5300
     targetPort: 53
     
@@ -111,7 +113,7 @@ unboundBlocklist:
       periodSeconds: 60
 
   service:
-    # type: ClusterIP
+    type: ClusterIP
     port: 5300
     targetPort: 53
 
@@ -130,6 +132,7 @@ dohProxy:
       pullPolicy: IfNotPresent
   service:
     type: ClusterIP
+    # #type:  LoadBalancer
     port: 3000
     protocol: TCP
 
@@ -156,9 +159,13 @@ dohProxyBlocklist:
  
 ingress:
   name: doh-ingress
-  class: "haproxy"
-  # enabled: "true"
-  enabled: "false"
+  class: "kong"
+  # class: "traefik"
+  # class: "haproxy"
+  # class: "nginx"
+  # class: "f5-nginx"
+  enabled: "true"
+  # enabled: "false"
 
   rootDomain: example.fr
 
@@ -166,8 +173,9 @@ ingress:
     issuer: "letsencrypt-staging"
   
   tls:
-    enabled: "false"
-    secretName: "{{.Values.ingress.name}}-tls"
+    enabled: "true"
+    # secretName: "{{.Values.ingress.name}}-tls"
+    secretName: "example-cert"
 
   hosts:
     - host: "ns1.{{.Values.ingress.rootDomain}}"
@@ -188,26 +196,63 @@ ingress:
 
 tcp:
    enabled: "true"
-   services:
-    - name: unbound-dot
+   routes:
+    - name: tcp-tls
+      tls: "true"
+      secretName: example-cert
+      services:
+        - name: unbound-dot
+          host: ns1.example.fr
+          port: 853
+          
+          backend:
+            service: unbound
+            port: 5300
+
+        - name: unbound-tcp
+          host: ns2.example.fr
+          serviceName: unbound
+          port: 853
+
+          backend:
+            service: unbound
+            port: 5300
+
+
+    - name: tcp
+      services:
+        - name: unbound-dot
+          port: 5353
+          
+          backend:
+            service: unbound
+            port: 5300
+
+# tcp:
+#    enabled: "true"
+#    services:
+#     - name: unbound-dot
       
-      frontend:
-        port: 853
-        ssl: true
-        ssl_certificate: example-cert
+#       frontend:
+#         port: 853
+#         ssl: true
+#         ssl_certificate: example-cert
 
-      backend:
-        service: unbound
-        port: 5300
+#       backend:
+#         service: unbound
+#         port: 5300
 
-    - name: unbound-tcp
-      serviceName: unbound
-      frontend:
-        port: 53
+#     - name: unbound-tcp
+#       serviceName: unbound
+#       frontend:
+#         port: 53
 
-      backend:
-        service: unbound
-        port: 5300
+#       backend:
+#         service: unbound
+#         port: 5300
+
+
+
 
 # https://www.haproxy.com/documentation/kubernetes-ingress/ingress-tutorials/terminate-ssl/#sidebar
 

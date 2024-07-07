@@ -64,7 +64,7 @@ metadata:
   labels:
     run: {{ .Values.unbound.serviceName }}
 spec:
-  # type: {{ .Values.unbound.service.type }}
+  type: {{ .Values.unbound.service.type }}
   ports:
     - port:  {{ .Values.unbound.service.port }}
       protocol: TCP

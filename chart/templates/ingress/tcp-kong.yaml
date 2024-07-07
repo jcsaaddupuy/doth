@@ -1,0 +1,37 @@
+{{- if eq (.Values.tcp.enabled | toString) "true" -}}
+{{- if eq (.Values.ingress.class | toString) "kong" -}}
+{{- $dot := . }}
+
+
+{{- range .Values.tcp.routes }}
+{{- $route := . }}
+---
+apiVersion: configuration.konghq.com/v1beta1
+kind: TCPIngress
+metadata:
+  name: {{.name}}
+  annotations:
+    kubernetes.io/ingress.class: kong
+spec:
+  {{ if eq ( .tls | toString) "true" }}
+  tls:
+  - secretName: {{ .secretName }}
+    hosts:
+        {{- range .services }}
+        - {{ tpl .host $dot }}
+        {{- end }}
+  {{- end }}
+  rules:
+   {{- range .services }}
+  - port: {{.port}}
+    {{- if eq ( $route.tls | toString) "true" }}
+    host: {{.host}}
+    {{- end }}
+    backend:
+      serviceName: {{.backend.service}}
+      servicePort: {{.backend.port}}
+  {{- end }}
+{{- end }}
+
+{{- end }}
+{{- end }}

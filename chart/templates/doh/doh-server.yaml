@@ -34,8 +34,10 @@ metadata:
   labels:
     run: {{ .Values.dohProxy.serviceName }}
 spec:
+  type:  {{ .Values.dohProxy.service.type }}
   ports:
-    - port: {{ .Values.dohProxy.service.port }}
+    - name: doh-proxy
+      port: {{ .Values.dohProxy.service.port }}
       protocol: TCP
   selector:
     run: {{ .Values.dohProxy.serviceName }}

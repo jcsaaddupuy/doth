@@ -1,0 +1,54 @@
+apiVersion: k8s.nginx.org/v1
+kind: TransportServer
+metadata:
+  name: dns-tcp
+spec:
+  listener:
+    name: dns-tcp
+    protocol: TCP
+  # tls:
+  #   secret: cafe-secret
+  upstreams:
+  - name: unbound
+    service: unbound
+    port: 5300
+  action:
+    pass: unbound
+---
+
+apiVersion: k8s.nginx.org/v1
+kind: TransportServer
+metadata:
+  name: dns-tcp
+spec:
+  listener:
+    name: dns-tls
+    protocol: TCP
+  # host: ns1.example.fr
+  # tls:
+  #   secret: cafe-secret
+  upstreams:
+  - name: unbound
+    service: unbound
+    port: 5300
+  action:
+    pass: unbound
+    
+---
+apiVersion: k8s.nginx.org/v1
+kind: TransportServer
+metadata:
+  name: doh-tcp
+spec:
+  listener:
+    name: doh-tcp
+    protocol: TCP
+  # tls:
+  #   secret: cafe-secret
+  upstreams:
+  - name: doh-tcp
+    service: doh-proxy
+    port: 3000
+  action:
+    pass: doh-tcp
+

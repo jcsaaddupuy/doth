@@ -1,0 +1,52 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: echoserver
+  annotations:
+    konghq.com/strip-path: 'true'
+spec:
+  ingressClassName: kong
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: echoserver
+            port:
+              number: 80
+
+---
+apiVersion: configuration.konghq.com/v1beta1
+kind: TCPIngress
+metadata:
+  name: echo-plaintext
+  annotations:
+    kubernetes.io/ingress.class: kong
+spec:
+  rules:
+  - port: 9000
+    backend:
+      serviceName: echoserver
+      servicePort: 80
+
+
+---
+apiVersion: configuration.konghq.com/v1beta1
+kind: TCPIngress
+metadata:
+  name: echo-tls
+  annotations:
+    kubernetes.io/ingress.class: kong
+spec:
+  tls:
+  - secretName: example-cert
+    # hosts:
+    #   - ns1.example.fr
+  rules:
+  - host: ns1.example.fr
+    port: 9443
+    backend:
+      serviceName: echoserver
+      servicePort: 80

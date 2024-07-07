@@ -1,0 +1,46 @@
+# ---
+# apiVersion: traefik.io/v1alpha1
+# # apiVersion: apiextensions.k8s.io/v1
+# kind: IngressRoute
+# metadata:
+#   name: echo-ingress
+#   namespace: echoserver
+
+# spec:
+#   entryPoints:
+#     - echo
+#     - echosecure
+#     # - web
+#     # - websecure
+
+#   routes:
+#     - match: Host(`echo.example.fr`)
+#       kind: Rule
+#       services:
+#         - name: echoserver
+#           port: 80
+
+#   tls:
+#     secretName: example-cert
+
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: IngressRouteTCP
+metadata:
+  name: echo-ingress-ctp
+
+spec:
+  entryPoints:
+    - echo
+    - echosecure
+  routes:
+    - match: "HostSNI(`*`)"
+      services:
+        - name: echoserver
+          port: 80
+  tls:
+    secretName: example-cert
+
+
+
