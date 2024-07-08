@@ -8,8 +8,6 @@ spec:
         env:
         - name: KONG_STREAM_LISTEN
           value: 0.0.0.0:9000, 0.0.0.0:9443 ssl, 0.0.0.0:853 ssl
-        - name: KONG_NGINX_STREAM_SSL_PREREAD
-          value: "on"
         - name: KONG_LOG_LEVEL
           value: info
         ports:
