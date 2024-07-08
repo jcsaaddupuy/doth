@@ -1,22 +1,7 @@
 # kubectl patch service -n kong kong-gateway-proxy --patch-file
 spec:
   ports:
-  - name: stream9000
-    port: 9000
-    protocol: TCP
-    targetPort: 9000
-  - name: stream9443
-    port: 9443
-    protocol: TCP
-    targetPort: 9443
-
-#
   - name: stream853
     port: 853
     protocol: TCP
     targetPort: 853
-
-  - name: stream5353n
-    port: 5353
-    protocol: TCP
-    targetPort: 5353

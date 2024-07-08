@@ -170,12 +170,11 @@ ingress:
   rootDomain: example.fr
 
   certManager:
-    issuer: "letsencrypt-staging"
+    issuer: "letsencrypt-prod"
   
   tls:
     enabled: "true"
-    # secretName: "{{.Values.ingress.name}}-tls"
-    secretName: "example-cert"
+    secretName: "{{.Values.ingress.name}}-tls"
 
   hosts:
     - host: "ns1.{{.Values.ingress.rootDomain}}"
@@ -199,57 +198,23 @@ tcp:
    routes:
     - name: tcp-tls
       tls: "true"
-      secretName: example-cert
+      secretName: "{{.Values.ingress.name}}-tls"
       services:
-        - name: unbound-dot
-          host: ns1.example.fr
+        - name: ns1-tcp
+          host: "ns1.{{.Values.ingress.rootDomain}}"
           port: 853
           
           backend:
-            service: unbound
-            port: 5300
+            serviceName:  "{{ .Values.unbound.serviceName }}"
+            servicePort: "{{int .Values.unbound.service.port }}"
 
-        - name: unbound-tcp
-          host: ns2.example.fr
-          serviceName: unbound
+        - name: ns2-tcp
+          host: "ns2.{{.Values.ingress.rootDomain}}"
           port: 853
 
           backend:
-            service: unbound
-            port: 5300
-
-
-    - name: tcp
-      services:
-        - name: unbound-dot
-          port: 5353
-          
-          backend:
-            service: unbound
-            port: 5300
-
-# tcp:
-#    enabled: "true"
-#    services:
-#     - name: unbound-dot
-      
-#       frontend:
-#         port: 853
-#         ssl: true
-#         ssl_certificate: example-cert
-
-#       backend:
-#         service: unbound
-#         port: 5300
-
-#     - name: unbound-tcp
-#       serviceName: unbound
-#       frontend:
-#         port: 53
-
-#       backend:
-#         service: unbound
-#         port: 5300
+            serviceName: "{{ .Values.unboundBlocklist.serviceName }}"
+            servicePort: "{{ int .Values.unboundBlocklist.service.port }}"
 
 
 

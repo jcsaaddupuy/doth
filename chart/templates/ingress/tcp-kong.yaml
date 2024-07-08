@@ -15,7 +15,7 @@ metadata:
 spec:
   {{ if eq ( .tls | toString) "true" }}
   tls:
-  - secretName: {{ .secretName }}
+  - secretName: "{{ tpl .secretName $dot }}"
     hosts:
         {{- range .services }}
         - {{ tpl .host $dot }}
@@ -25,11 +25,11 @@ spec:
    {{- range .services }}
   - port: {{.port}}
     {{- if eq ( $route.tls | toString) "true" }}
-    host: {{.host}}
+    host:  {{ tpl .host $dot }}
     {{- end }}
     backend:
-      serviceName: {{.backend.service}}
-      servicePort: {{.backend.port}}
+      serviceName:  {{ tpl .backend.serviceName $dot }}
+      servicePort: {{ tpl .backend.servicePort $dot }}
   {{- end }}
 {{- end }}
 
