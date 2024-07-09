@@ -1,6 +1,6 @@
 # About
 
-DOTH stands for Tns Over Tls/Https.
+DOTH stands for Dns Over Tls/Https.
 
 
 This chart helps to setup a DNS server with support for 
