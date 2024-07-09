@@ -51,17 +51,17 @@ spec:
               mountPath: "/opt/unbound/etc/unbound/blocklists/"
 
       containers:
-        - name: unbound-blocklist-debug
-          image: {{ .Values.unboundBlocklist.deployment.image.repository }}
-          command: ["sleep", "1000"]
+        # - name: unbound-blocklist-debug
+        #   image: {{ .Values.unboundBlocklist.deployment.image.repository }}
+        #   command: ["sleep", "1000"]
 
-          # Configuration
-          volumeMounts:
-          - name: unbound-blocklist-config
-            mountPath: /opt/unbound/etc/unbound/unbound.conf
-            subPath: unbound.conf
-          - name: unbound-blocklist-blocklists
-            mountPath: "/opt/unbound/etc/unbound/blocklists/"
+        #   # Configuration
+        #   volumeMounts:
+        #   - name: unbound-blocklist-config
+        #     mountPath: /opt/unbound/etc/unbound/unbound.conf
+        #     subPath: unbound.conf
+        #   - name: unbound-blocklist-blocklists
+        #     mountPath: "/opt/unbound/etc/unbound/blocklists/"
 
         - name: unbound-blocklist
           image: {{ .Values.unboundBlocklist.deployment.image.repository }}
