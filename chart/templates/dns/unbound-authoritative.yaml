@@ -21,7 +21,7 @@ spec:
   selector:
     matchLabels:
       run: {{ .Values.unboundAuth.serviceName }}
-  replicas: {{ .Values.unboundAuth.deployment.replicaCount }}
+  replicas: {{ .Values.unboundAuth.deployment.replicaCount | default 1}}
   template:
     metadata:
       labels:
@@ -62,16 +62,26 @@ spec:
               protocol: TCP
               name: 'tcp-53'
           
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "250m"
+            limits:
+              memory: "32Mi"
+              cpu: "500m"   
+        
+          {{- if eq (.Values.unboundAuth.deployment.livenessProbe.enabled | toString) "true" }}
           # liveness : periodically resolve a domain
-          # livenessProbe:
-          #   exec:
-          #     command:
-          #       - drill
-          #       - '@{{ .Values.unboundAuth.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
-          #       - {{ .Values.unboundAuth.deployment.livenessProbe.healthcheckDomain }}
-          #   initialDelaySeconds:  {{ .Values.unboundAuth.deployment.livenessProbe.initialDelaySeconds }}
-          #   periodSeconds: {{ .Values.unboundAuth.deployment.livenessProbe.periodSeconds }}
-          
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@{{ .Values.unboundAuth.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - '-p {{ .Values.unboundAuth.service.port }}'
+                - {{ .Values.unboundAuth.deployment.livenessProbe.healthcheckDomain }}
+            initialDelaySeconds:  {{ .Values.unboundAuth.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.unboundAuth.deployment.livenessProbe.periodSeconds }}
+          {{- end }}
           # Configuration
           volumeMounts:
           - name: "{{ .Values.unboundAuth.serviceName }}-config"

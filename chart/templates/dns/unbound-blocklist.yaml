@@ -72,17 +72,26 @@ spec:
             - containerPort: {{ .Values.unboundBlocklist.service.port }}
               protocol: TCP
               name: 'tcp-53'
-          
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "250m"
+            limits:
+              memory: "128Mi"
+              cpu: "500m"           
+          {{- if eq (.Values.unboundBlocklist.deployment.livenessProbe.enabled | toString) "true" }}
           # liveness : predically resolve a domain
-          # livenessProbe:
-          #   exec:
-          #     command:
-          #       - drill
-          #       - '@{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
-          #       - {{ .Values.unboundBlocklist.deployment.livenessProbe.healthcheckDomain }}
-          #   initialDelaySeconds:  {{ .Values.unboundBlocklist.deployment.livenessProbe.initialDelaySeconds }}
-          #   periodSeconds: {{ .Values.unboundBlocklist.deployment.livenessProbe.periodSeconds }}
-          
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - '-p {{ .Values.unboundBlocklist.service.port }}'
+                - {{ .Values.unboundBlocklist.deployment.livenessProbe.healthcheckDomain }}
+            initialDelaySeconds:  {{ .Values.unboundBlocklist.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.unboundBlocklist.deployment.livenessProbe.periodSeconds }}
+          {{- end }}
+
           # Configuration
           volumeMounts:
           - name: unbound-blocklist-config
