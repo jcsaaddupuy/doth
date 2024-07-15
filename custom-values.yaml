@@ -1,0 +1,16 @@
+ingress:
+  rootDomain: your.domain.com
+
+unboundBlocklist:
+  config:
+    blocklists:
+        - name: StevenBlack
+          url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+          # hostFileIpPattern: "0.0.0.0"
+
+        - name: Easylist listfr
+          url: https://raw.githubusercontent.com/easylist/listefr/master/hosts.txt
+          # hostFileIpPattern: "0.0.0.0"
+  
+  deployment:
+    replicaCount: 1
