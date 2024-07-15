@@ -7,7 +7,7 @@ spec:
       - name: proxy
         env:
         - name: KONG_STREAM_LISTEN
-          value: 0.0.0.0:9000, 0.0.0.0:9443 ssl, 0.0.0.0:853 ssl
+          value: 0.0.0.0:9000, 0.0.0.0:9443 ssl, 0.0.0.0:853 ssl, 0.0.0.0:53, 0.0.0.0:53 udp
         - name: KONG_LOG_LEVEL
           value: info
         ports:
@@ -15,3 +15,9 @@ spec:
         - containerPort: 853
           name: stream853
           protocol: TCP
+        - containerPort: 53
+          name: stream53
+          protocol: TCP
+        - containerPort: 53
+          name: udp53
+          protocol: UDP

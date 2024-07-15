@@ -5,3 +5,13 @@ spec:
     port: 853
     protocol: TCP
     targetPort: 853
+
+  - name: stream53
+    port: 53
+    protocol: TCP
+    targetPort: 53
+
+  - name: udp53
+    port: 53
+    protocol: UDP
+    targetPort: 53

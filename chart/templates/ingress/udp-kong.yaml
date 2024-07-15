@@ -1,0 +1,26 @@
+{{- if eq (.Values.udp.enabled | toString) "true" -}}
+{{- if eq (.Values.ingress.class | toString) "kong" -}}
+{{- $dot := . }}
+
+
+{{- range .Values.udp.routes }}
+{{- $route := . }}
+---
+apiVersion: configuration.konghq.com/v1beta1
+kind: UDPIngress
+metadata:
+  name: {{.name}}
+  annotations:
+    kubernetes.io/ingress.class: {{$dot.Values.ingress.class}}
+spec:
+  rules:
+   {{- range .services }}
+  - port: {{.port}}
+    backend:
+      serviceName:  {{ tpl .backend.serviceName $dot }}
+      servicePort: {{ tpl .backend.servicePort $dot }}
+  {{- end }}
+{{- end }}
+
+{{- end }}
+{{- end }}

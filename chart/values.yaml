@@ -225,6 +225,19 @@ tcp:
             servicePort: "{{int .Values.unbound.service.port }}"
 
 
+udp:
+   enabled: "true"
+   routes:
+    - name: dns-udp
+      services:
+        - name: ns1-tcp
+          host: "ns1.{{.Values.ingress.rootDomain}}"
+          port: 53
+          
+          backend:
+            serviceName:  "{{ .Values.unbound.serviceName }}"
+            servicePort: "{{int .Values.unbound.service.port }}"
+
 
 
 # https://www.haproxy.com/documentation/kubernetes-ingress/ingress-tutorials/terminate-ssl/#sidebar
