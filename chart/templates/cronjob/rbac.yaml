@@ -1,0 +1,30 @@
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: cronjob-restart
+  namespace: {{ .Release.Namespace }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cronjob-restart
+  namespace: {{ .Release.Namespace }}
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "patch", "list", "watch", "update"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: cronjob-restart
+  namespace: {{ .Release.Namespace }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cronjob-restart
+subjects:
+  - kind: ServiceAccount
+    name: cronjob-restart
+    namespace: {{ .Release.Namespace }}

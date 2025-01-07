@@ -36,13 +36,13 @@ spec:
             - containerPort: {{ .Values.unbound.service.port }}
               protocol: TCP
               name: 'tcp-53'
-          resources:
-            requests:
-              memory: "16Mi"
-              cpu: "250m"
-            limits:
-              memory: "32Mi"
-              cpu: "500m"          
+          # resources:
+          #   requests:
+          #     memory: "16Mi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "32Mi"
+          #     cpu: "500m"          
           {{- if eq (.Values.unbound.deployment.livenessProbe.enabled | toString) "true" }}
           # liveness : predically resolve a domain
           livenessProbe:

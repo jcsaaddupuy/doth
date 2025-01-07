@@ -62,13 +62,13 @@ spec:
               protocol: TCP
               name: 'tcp-53'
           
-          resources:
-            requests:
-              memory: "16Mi"
-              cpu: "250m"
-            limits:
-              memory: "32Mi"
-              cpu: "500m"   
+          # resources:
+          #   requests:
+          #     memory: "16Mi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "32Mi"
+          #     cpu: "500m" 
         
           {{- if eq (.Values.unboundAuth.deployment.livenessProbe.enabled | toString) "true" }}
           # liveness : periodically resolve a domain

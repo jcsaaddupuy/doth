@@ -21,6 +21,10 @@ curl -s '{{.url}}' | \
         >> blacklist.conf;
 {{- end }}
 
+# removes duplicates and replace file
+awk '!seen[$0]++' blacklist.conf >> /tmp/blacklist.conf
+mv /tmp/blacklist.conf blacklist.conf
+
 
 echo "$(cat blacklist.conf | wc -l) domains blocked"
 echo "All good !"
