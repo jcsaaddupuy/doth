@@ -34,8 +34,8 @@ spec:
       initContainers:
       - name: init-myservice
         image: curlimages/curl
-        command: ['sh', '/opt/unbound/etc/unbound/refresh-blacklist.sh']
-        workingDir: /opt/unbound/etc/unbound/blocklists/
+        command: ['sh', '/etc/unbound/unbound.conf.d/refresh-blacklist.sh']
+        workingDir: /etc/unbound/unbound.conf.d/blocklists/
         securityContext:
           runAsUser: 0
         env:
@@ -45,10 +45,10 @@ spec:
         # Configuration
         volumeMounts:
             - name: unbound-blocklist-config
-              mountPath: /opt/unbound/etc/unbound/refresh-blacklist.sh
+              mountPath: /etc/unbound/unbound.conf.d/refresh-blacklist.sh
               subPath: refresh-blacklist.sh
             - name: unbound-blocklist-blocklists
-              mountPath: "/opt/unbound/etc/unbound/blocklists/"
+              mountPath: "/etc/unbound/unbound.conf.d/blocklists/"
 
       containers:
         # - name: unbound-blocklist-debug
@@ -58,10 +58,10 @@ spec:
         #   # Configuration
         #   volumeMounts:
         #   - name: unbound-blocklist-config
-        #     mountPath: /opt/unbound/etc/unbound/unbound.conf
+        #     mountPath: /etc/unbound/unbound.conf.d/unbound.conf
         #     subPath: unbound.conf
         #   - name: unbound-blocklist-blocklists
-        #     mountPath: "/opt/unbound/etc/unbound/blocklists/"
+        #     mountPath: "/etc/unbound/unbound.conf.d/blocklists/"
 
         - name: unbound-blocklist
           image: {{ .Values.unboundBlocklist.deployment.image.repository }}
@@ -95,10 +95,10 @@ spec:
           # Configuration
           volumeMounts:
           - name: unbound-blocklist-config
-            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            mountPath: /etc/unbound/unbound.conf.d/unbound.conf
             subPath: unbound.conf
           - name: unbound-blocklist-blocklists
-            mountPath: "/opt/unbound/etc/unbound/blocklists/"
+            mountPath: "/etc/unbound/unbound.conf.d/blocklists/"
 
       volumes:
         - name: unbound-blocklist-config

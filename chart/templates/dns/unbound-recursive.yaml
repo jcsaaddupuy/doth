@@ -31,25 +31,25 @@ spec:
       - name: init-root-hints
         image: curlimages/curl
         command: ["curl", "{{ .Values.unboundRecursive.config.rootHintsUrl }}", "-o", "root.hints"]
-        workingDir: /opt/unbound/etc/unbound/data
+        workingDir: /etc/unbound/unbound.conf.d/data
         securityContext:
           runAsUser: 0 # FIXME, may not run as root
         # Configuration
         volumeMounts:
             - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
-              mountPath: "/opt/unbound/etc/unbound/data"
+              mountPath: "/etc/unbound/unbound.conf.d/data"
 
       - name: init-root-key
         image: {{ .Values.unboundRecursive.deployment.image.repository }}
         command: ['unbound-anchor', '-a', 'root.key']
-        workingDir: /opt/unbound/etc/unbound/data
+        workingDir: /etc/unbound/unbound.conf.d/data
         securityContext:
           runAsUser: 0
         
         # Configuration
         volumeMounts:
             - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
-              mountPath: "/opt/unbound/etc/unbound/data"
+              mountPath: "/etc/unbound/unbound.conf.d/data"
 
       containers:
         - name: {{ .Values.unboundRecursive.serviceName }}
@@ -85,11 +85,11 @@ spec:
           # Configuration
           volumeMounts:
           - name: "{{ .Values.unboundRecursive.serviceName }}-config"
-            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            mountPath: /etc/unbound/unbound.conf.d/unbound.conf
             subPath: unbound.conf
 
           - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
-            mountPath: "/opt/unbound/etc/unbound/data/"
+            mountPath: "/etc/unbound/unbound.conf.d/data/"
 
       volumes:
         - name: "{{ .Values.unboundRecursive.serviceName }}-config"
