@@ -5,8 +5,8 @@ unboundRecursive:
     verbosity: 1
     logQueries: "yes"
 
-    trustAnchorFile: "/opt/unbound/etc/unbound/data/root.key"
-    rootHints: "/opt/unbound/etc/unbound/data/root.hints"
+    trustAnchorFile: "/etc/unbound/unbound.conf.d/data/root.key"
+    rootHints: "/etc/unbound/unbound.conf.d/data/root.hints"
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
 
@@ -15,7 +15,7 @@ unboundRecursive:
   deployment:
     replicaCount: 1
     image:
-      repository: mvance/unbound:latest
+      repository: alpinelinux/unbound:latest
       pullPolicy: IfNotPresent
 
     livenessProbe:
@@ -49,7 +49,7 @@ unbound:
   deployment:
     replicaCount: 1
     image:
-      repository: mvance/unbound:latest
+      repository: alpinelinux/unbound:latest
       pullPolicy: IfNotPresent
 
     livenessProbe:
@@ -76,7 +76,7 @@ unboundBlocklist:
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
     includes:
-      - "/opt/unbound/etc/unbound/blocklists/blacklist.conf"
+      - "/etc/unbound/unbound.conf.d/blocklists/blacklist.conf"
     forwardZones:
       - name: "."
         # unbound auth clusterIP
@@ -94,7 +94,7 @@ unboundBlocklist:
   deployment:
     replicaCount: 1
     image:
-      repository: mvance/unbound:latest
+      repository: alpinelinux/unbound:latest
       pullPolicy: IfNotPresent
 
     livenessProbe:
