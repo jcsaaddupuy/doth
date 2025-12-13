@@ -1,0 +1,122 @@
+{{- if eq (.Values.unboundRecursive.enabled | toString) "true" -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.unboundRecursive.serviceName }}-configmap"
+  labels:
+    app: {{ .Values.unboundRecursive.serviceName }}
+  annotations:
+        checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundRecursive | sha256sum }}
+data:
+  unbound.conf: |-
+{{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundRecursive | nindent 4 }}
+  
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.unboundRecursive.serviceName }}
+spec:
+  selector:
+    matchLabels:
+      run: {{ .Values.unboundRecursive.serviceName }}
+  replicas: {{ .Values.unboundRecursive.deployment.replicaCount | default 1}}
+  template:
+    metadata:
+      labels:
+        run: {{ .Values.unboundRecursive.serviceName }}
+    spec:
+      initContainers:
+      - name: init-root-hints
+        image: curlimages/curl
+        command: ["curl", "{{ .Values.unboundRecursive.config.rootHintsUrl }}", "-o", "root.hints"]
+        workingDir: /opt/unbound/etc/unbound/data
+        securityContext:
+          runAsUser: 0 # FIXME, may not run as root
+        # Configuration
+        volumeMounts:
+            - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
+              mountPath: "/opt/unbound/etc/unbound/data"
+
+      - name: init-root-key
+        image: {{ .Values.unboundRecursive.deployment.image.repository }}
+        command: ['unbound-anchor', '-a', 'root.key']
+        workingDir: /opt/unbound/etc/unbound/data
+        securityContext:
+          runAsUser: 0
+        
+        # Configuration
+        volumeMounts:
+            - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
+              mountPath: "/opt/unbound/etc/unbound/data"
+
+      containers:
+        - name: {{ .Values.unboundRecursive.serviceName }}
+          image: {{ .Values.unboundRecursive.deployment.image.repository }}
+          ports:
+            - containerPort: {{ .Values.unboundRecursive.service.port }}
+              protocol: UDP
+              name: 'udp-53'
+            - containerPort: {{ .Values.unboundRecursive.service.port }}
+              protocol: TCP
+              name: 'tcp-53'
+          
+          # resources:
+          #   requests:
+          #     memory: "16Mi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "32Mi"
+          #     cpu: "500m" 
+        
+          {{- if eq (.Values.unboundRecursive.deployment.livenessProbe.enabled | toString) "true" }}
+          # liveness : periodically resolve a domain
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@{{ .Values.unboundRecursive.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - '-p {{ .Values.unboundRecursive.service.port }}'
+                - {{ .Values.unboundRecursive.deployment.livenessProbe.healthcheckDomain }}
+            initialDelaySeconds:  {{ .Values.unboundRecursive.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.unboundRecursive.deployment.livenessProbe.periodSeconds }}
+          {{- end }}
+          # Configuration
+          volumeMounts:
+          - name: "{{ .Values.unboundRecursive.serviceName }}-config"
+            mountPath: /opt/unbound/etc/unbound/unbound.conf
+            subPath: unbound.conf
+
+          - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
+            mountPath: "/opt/unbound/etc/unbound/data/"
+
+      volumes:
+        - name: "{{ .Values.unboundRecursive.serviceName }}-config"
+          configMap:
+            name: "{{ .Values.unboundRecursive.serviceName }}-configmap"
+        - name: "{{ .Values.unboundRecursive.serviceName }}-volume"
+          emptyDir: {}
+
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.unboundRecursive.serviceName }}
+  labels:
+    run: {{ .Values.unboundRecursive.serviceName }}
+spec:
+  clusterIP: {{ .Values.unboundRecursive.service.clusterIP }}
+  ports:
+    - port:  {{ .Values.unboundRecursive.service.port }}
+      protocol: TCP
+      name: 'tcp-53'
+      targetPort: {{ .Values.unboundRecursive.service.targetPort }}
+    - port:  {{ .Values.unboundRecursive.service.port }}
+      protocol: UDP
+      name: 'udp-53'
+      targetPort: {{ .Values.unboundRecursive.service.targetPort }}
+  selector:
+    run: {{ .Values.unboundRecursive.serviceName }}
+{{- end }}

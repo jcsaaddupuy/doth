@@ -1,6 +1,6 @@
-unboundAuth:
+unboundRecursive:
   enabled: "true"
-  serviceName: unbound-auth
+  serviceName: unbound-recursive
   config:
     verbosity: 1
     logQueries: "yes"
