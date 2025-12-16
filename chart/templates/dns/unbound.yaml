@@ -58,7 +58,7 @@ spec:
           # Configuration
           volumeMounts:
           - name: unbound-volume
-            mountPath: /etc/unbound/unbound.conf.d/unbound.conf
+            mountPath: /etc/unbound/unbound.conf
             subPath: unbound.conf
       volumes:
         - name: unbound-volume

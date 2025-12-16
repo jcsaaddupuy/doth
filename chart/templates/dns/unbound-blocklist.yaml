@@ -34,8 +34,8 @@ spec:
       initContainers:
       - name: init-myservice
         image: curlimages/curl
-        command: ['sh', '/etc/unbound/unbound.conf.d/refresh-blacklist.sh']
-        workingDir: /etc/unbound/unbound.conf.d/blocklists/
+        command: ['sh', '/etc/unbound/refresh-blacklist.sh']
+        workingDir: /etc/unbound/blocklists/
         securityContext:
           runAsUser: 0
         env:
@@ -45,10 +45,10 @@ spec:
         # Configuration
         volumeMounts:
             - name: unbound-blocklist-config
-              mountPath: /etc/unbound/unbound.conf.d/refresh-blacklist.sh
+              mountPath: /etc/unbound/refresh-blacklist.sh
               subPath: refresh-blacklist.sh
             - name: unbound-blocklist-blocklists
-              mountPath: "/etc/unbound/unbound.conf.d/blocklists/"
+              mountPath: "/etc/unbound/blocklists/"
 
       containers:
         # - name: unbound-blocklist-debug
@@ -58,10 +58,10 @@ spec:
         #   # Configuration
         #   volumeMounts:
         #   - name: unbound-blocklist-config
-        #     mountPath: /etc/unbound/unbound.conf.d/unbound.conf
+        #     mountPath: /etc/unbound/unbound.conf
         #     subPath: unbound.conf
         #   - name: unbound-blocklist-blocklists
-        #     mountPath: "/etc/unbound/unbound.conf.d/blocklists/"
+        #     mountPath: "/etc/unbound/blocklists/"
 
         - name: unbound-blocklist
           image: {{ .Values.unboundBlocklist.deployment.image.repository }}
@@ -95,10 +95,10 @@ spec:
           # Configuration
           volumeMounts:
           - name: unbound-blocklist-config
-            mountPath: /etc/unbound/unbound.conf.d/unbound.conf
+            mountPath: /etc/unbound/unbound.conf
             subPath: unbound.conf
           - name: unbound-blocklist-blocklists
-            mountPath: "/etc/unbound/unbound.conf.d/blocklists/"
+            mountPath: "/etc/unbound/blocklists/"
 
       volumes:
         - name: unbound-blocklist-config

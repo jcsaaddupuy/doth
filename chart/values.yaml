@@ -5,8 +5,8 @@ unboundRecursive:
     verbosity: 1
     logQueries: "yes"
 
-    trustAnchorFile: "/etc/unbound/unbound.conf.d/data/root.key"
-    rootHints: "/etc/unbound/unbound.conf.d/data/root.hints"
+    trustAnchorFile: "/etc/unbound/data/root.key"
+    rootHints: "/etc/unbound/data/root.hints"
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
 
@@ -76,7 +76,7 @@ unboundBlocklist:
     interface: "0.0.0.0"
     accessControl: "0.0.0.0/0 allow"
     includes:
-      - "/etc/unbound/unbound.conf.d/blocklists/blacklist.conf"
+      - "/etc/unbound/blocklists/blacklist.conf"
     forwardZones:
       - name: "."
         # unbound auth clusterIP
@@ -231,4 +231,4 @@ cronjob:
   enabled: "true"
   timeZone: "Europe/Paris"
   schedule: "5 4 * * *"
-  restartServiceName:  "{{ .Values.unboundBlocklist.serviceName }}"
+  restartServiceName:  "deployment/unbound-blocklist"
