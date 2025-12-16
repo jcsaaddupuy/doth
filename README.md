@@ -43,6 +43,9 @@ helm install \
   --set crds.enabled=true
 
 
+helm upgrade --reset-then-reuse-values --version v1.19.1 cert-manager jetstack/cert-manager --namespace cert-manager
+
+
 
 # patch kong gateway and service to open port 853
 kubectl patch deploy -n kong kong-gateway --patch-file cluster/kong/01-patch-deployment.yaml
@@ -109,6 +112,14 @@ WantedBy=multi-user.target
                     listen     853;
                     proxy_pass 192.168.49.2:853;
             }
+
+            # open 53 TCP/UDP to an internal interface (ex: wireguard)
+            server {
+                listen     10.8.0.1:53;
+                listen     10.8.0.1:53 udp;
+                proxy_pass 192.168.49.2:53;
+            }
+
     }
 ```
 
