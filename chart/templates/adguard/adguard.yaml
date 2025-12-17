@@ -1,0 +1,140 @@
+{{- if eq (.Values.agh.enabled | toString) "true" -}}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: adguard-volume-pv
+spec:
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  capacity:
+    storage: 1Gi
+  hostPath:
+    path: /data/adguard-volume-pv
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: adguard-volume-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: adguard-volume-pv
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ .Values.agh.serviceName }}-configmap"
+  labels:
+    app: {{ .Values.agh.serviceName }}
+  annotations:
+        checksum/AdGuardHome.yaml: {{ tpl (.Files.Get "config/agh/AdGuardHome.yaml") .Values.agh | sha256sum }}
+data:
+  AdGuardHome.yaml: |-
+{{ tpl (.Files.Get "config/agh/AdGuardHome.yaml") .Values.agh | nindent 4 }}
+
+--- 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.agh.serviceName }}
+spec:
+  selector:
+    matchLabels:
+      run: {{ .Values.agh.serviceName }}
+  replicas: {{ .Values.agh.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        run: {{ .Values.agh.serviceName }}
+    spec:
+      containers:
+        - name: {{ .Values.agh.serviceName }}
+          image: {{ .Values.agh.deployment.image.repository }}
+          command: [
+            "/opt/adguardhome/AdGuardHome", 
+            "--web-addr", "0.0.0.0:{{ .Values.agh.services.httpAdmin.port }}",
+            "--work-dir", "/opt/adguardhome/volume/",
+            "--config", "/opt/adguardhome/volume/AdGuardHome.yaml"
+            ]
+          ports:
+            - containerPort: {{ .Values.agh.services.dns.port }}
+              protocol: UDP
+              name: 'udp-{{ .Values.agh.services.dns.port }}'
+            - containerPort: {{ .Values.agh.services.dns.port }}
+              protocol: TCP
+              name: 'tcp-{{ .Values.agh.services.dns.port }}'
+            - containerPort: {{ .Values.agh.services.httpAdmin.port }}
+              protocol: TCP
+              name: 'tcp-{{ .Values.agh.services.httpAdmin.port }}'
+
+          # resources:
+          #   requests:
+          #     memory: "16Mi"
+          #     cpu: "250m"
+          #   limits:
+          #     memory: "32Mi"
+          #     cpu: "500m"          
+          {{- if eq (.Values.agh.deployment.livenessProbe.enabled | toString) "true" }}
+          # liveness : predically resolve a domain
+          livenessProbe:
+            exec:
+              command:
+                - drill
+                - '@{{ .Values.agh.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local'
+                - '-p {{ .Values.agh.services.dns.port }}'
+                - {{ .Values.agh.deployment.livenessProbe.healthcheckDomain }}
+            initialDelaySeconds:  {{ .Values.agh.deployment.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.agh.deployment.livenessProbe.periodSeconds }}
+          {{- end }}
+          # Configuration
+          volumeMounts:
+          - name: adguard-volume
+            mountPath: /opt/adguardhome/volume
+
+          # - name: {{ .Values.agh.serviceName }}-volume
+          #   mountPath: /opt/adguardhome/conf/AdGuardHome.yaml
+          #   subPath: AdGuardHome.yaml
+
+      volumes:
+        # - name: {{ .Values.agh.serviceName }}-volume
+        #   configMap:
+        #     name: {{ .Values.agh.serviceName }}-configmap
+        - name: adguard-volume
+          persistentVolumeClaim:
+            claimName: adguard-volume-pvc
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.agh.serviceName }}
+  labels:
+    run: {{ .Values.agh.serviceName }}
+spec:
+  type: {{ .Values.agh.services.type }}
+  ports:
+    - port:  {{ .Values.agh.services.dns.port }}
+      protocol: TCP
+      name: "tcp-{{ .Values.agh.services.dns.port }}"
+      targetPort: {{ .Values.agh.services.dns.targetPort }}
+    - port:  {{ .Values.agh.services.dns.port }}
+      protocol: UDP
+      name: "udp-{{ .Values.agh.services.dns.port }}"
+      targetPort: {{ .Values.agh.services.dns.targetPort }}
+
+    # admin interface
+    - port:  {{ .Values.agh.services.httpAdmin.port }}
+      protocol: TCP
+      name: "tcp-{{ .Values.agh.services.httpAdmin.port }}"
+      targetPort: {{ .Values.agh.services.httpAdmin.port }}
+  
+
+  
+  selector:
+    run: {{ .Values.agh.serviceName }}
+{{- end }}

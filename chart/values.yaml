@@ -148,6 +148,35 @@ dohProxyBlocklist:
     port: 3000
     protocol: TCP
  
+
+agh:
+  serviceName: agh
+  enabled: "true"
+
+  deployment:
+    replicaCount: 1
+    image:
+      repository: adguard/adguardhome:latest
+      pullPolicy: IfNotPresent
+
+    livenessProbe:
+      enabled: "true"
+      healthcheckDomain: cloudflare.com
+      initialDelaySeconds: 5
+      periodSeconds: 60
+
+  services:
+    type: ClusterIP
+    dns:
+      port: 5300
+      targetPort: 53
+      bindHost: 0.0.0.0
+    httpAdmin:
+        port: 80
+        targetPort: 80
+
+
+
 ingress:
   enabled: "true"
   name: doh-ingress
@@ -179,6 +208,15 @@ ingress:
               serviceName: "{{ .Values.dohProxyBlocklist.serviceName }}"
               servicePort: "{{ int .Values.dohProxyBlocklist.service.port }}"
 
+
+    - host: "ns3.{{.Values.ingress.rootDomain}}"
+      enabled: "true"
+      paths:
+        - path: /
+          backend:
+              serviceName: "{{ .Values.agh.serviceName }}"
+              servicePort: "80"
+
 tcp:
    enabled: "true"
    routes:
@@ -202,15 +240,13 @@ tcp:
             serviceName: "{{ .Values.unboundBlocklist.serviceName }}"
             servicePort: "{{ int .Values.unboundBlocklist.service.port }}"
 
-    - name: dns-tcp
-      services:
-        - name: ns1-tcp
-          host: "ns1.{{.Values.ingress.rootDomain}}"
-          port: 53
-          
+        - name: ns3-tcp
+          host: "ns3.{{.Values.ingress.rootDomain}}"
+          port: 853
+
           backend:
-            serviceName:  "{{ .Values.unbound.serviceName }}"
-            servicePort: "{{int .Values.unbound.service.port }}"
+            serviceName: "{{ .Values.agh.serviceName }}"
+            servicePort: "{{ int .Values.agh.services.dns.port }}"
 
 
 udp:
