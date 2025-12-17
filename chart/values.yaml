@@ -264,8 +264,39 @@ udp:
             servicePort: "{{int .Values.unbound.service.port }}"
 
 
-cronjob:
-  enabled: "true"
-  timeZone: "Europe/Paris"
-  schedule: "5 4 * * *"
-  restartServiceName:  "deployment/unbound-blocklist"
+cronjobs:
+  - name: "restart-unbound-recursive"
+    enabled: "true"
+    timeZone: "Europe/Paris"
+    schedule: "0 6 * * *"
+    restartServiceName: "deploymeny/unbound-recursive"
+  
+  - name: "restart-unbound"
+    enabled: "true"
+    timeZone: "Europe/Paris"
+    schedule: "1 6 * * *"
+    restartServiceName: "deploymeny/unbound"
+
+  - name: "restart-unbound-blocklist"
+    enabled: "true"
+    timeZone: "Europe/Paris"
+    schedule: "2 6 * * *"
+    restartServiceName: "deploymeny/unbound-blocklist"
+
+  # - name: "restart-doh-proxy"
+  #   enabled: "true"
+  #   timeZone: "Europe/Paris"
+  #   schedule: "3 6 * * *"
+  #   restartServiceName: "deploymeny/doh-proxy"
+
+  # - name: "restart-doh-proxy-blocklist"
+  #   enabled: "true"
+  #   timeZone: "Europe/Paris"
+  #   schedule: "5 4 * * *"
+  #   restartServiceName: "deploymeny/doh-proxy-blocklist"
+
+  - name: "restart-agh"
+    enabled: "true"
+    timeZone: "Europe/Paris"
+    schedule: "5 6 * * *"
+    restartServiceName: "deploymeny/agh"
