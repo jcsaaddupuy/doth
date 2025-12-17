@@ -23,6 +23,11 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - kubectl rollout restart deployment/{{ .Values.cronjob.restartServiceName }} -n {{ .Release.Namespace }}
+                - kubectl rollout restart ${DEPLOYMENT_NAME} -n ${DEPLOYMENT_NAMESPACE}
+              env:
+                - name: DEPLOYMENT_NAME
+                  value: "{{ .Values.cronjob.restartServiceName }}"
+                - name:  DEPLOYMENT_NAMESPACE
+                  value:  {{ .Release.Namespace }}
           restartPolicy: OnFailure
 {{- end }}
