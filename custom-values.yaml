@@ -3,14 +3,53 @@ ingress:
 
 unboundBlocklist:
   config:
+    logQueries: "no"
     blocklists:
-        - name: StevenBlack
-          url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-          # hostFileIpPattern: "0.0.0.0"
+      - name: StevenBlack
+        url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+        # hostFileIpPattern: "0.0.0.0"
 
-        - name: Easylist listfr
-          url: https://raw.githubusercontent.com/easylist/listefr/master/hosts.txt
-          # hostFileIpPattern: "0.0.0.0"
-  
+      - name: Easylist listfr
+        url: https://raw.githubusercontent.com/easylist/listefr/master/hosts.txt
+        # hostFileIpPattern: "0.0.0.0"
+
   deployment:
+    image:
+      pullPolicy: Always
+    replicaCount: 1
+
+
+
+unbound:
+  deployment:
+    image:
+      pullPolicy: Always
+    replicaCount: 1
+  config:
+    logQueries: "no"
+
+unboundRecursive:
+  deployment:
+    image:
+      pullPolicy: Always
+    replicaCount: 1
+  config:
+    logQueries: "no"
+
+dohProxy:
+  deployment:
+    image:
+      pullPolicy: Always
+    replicaCount: 1
+
+dohProxyBlocklist:
+  deployment:
+    image:
+      pullPolicy: Always
+    replicaCount: 1
+
+agh:
+  deployment:
+    image:
+      pullPolicy: Always
     replicaCount: 1
