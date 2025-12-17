@@ -19,7 +19,7 @@ unboundRecursive:
       pullPolicy: IfNotPresent
 
     livenessProbe:
-      enabled: "true"
+      enabled: "false"
       healthcheckDomain: cloudflare.com
       initialDelaySeconds: 5
       periodSeconds: 60
@@ -53,7 +53,7 @@ unbound:
       pullPolicy: IfNotPresent
 
     livenessProbe:
-      enabled: "true"
+      enabled: "false"
       healthcheckDomain: cloudflare.com
       initialDelaySeconds: 5
       periodSeconds: 60
@@ -99,7 +99,7 @@ unboundBlocklist:
       pullPolicy: IfNotPresent
 
     livenessProbe:
-      enabled: "true"
+      enabled: "false"
       healthcheckDomain: cloudflare.com
       initialDelaySeconds: 5
       periodSeconds: 60
@@ -161,7 +161,7 @@ agh:
       pullPolicy: IfNotPresent
 
     livenessProbe:
-      enabled: "true"
+      enabled: "false"
       healthcheckDomain: cloudflare.com
       initialDelaySeconds: 5
       periodSeconds: 60
