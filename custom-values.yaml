@@ -1,32 +1,5 @@
 ingress:
-  rootDomain: your.domain.com
-
-unboundBlocklist:
-  config:
-    logQueries: "no"
-    blocklists:
-      - name: StevenBlack
-        url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-        # hostFileIpPattern: "0.0.0.0"
-
-      - name: Easylist listfr
-        url: https://raw.githubusercontent.com/easylist/listefr/master/hosts.txt
-        # hostFileIpPattern: "0.0.0.0"
-
-  deployment:
-    image:
-      pullPolicy: Always
-    replicaCount: 1
-
-
-
-unbound:
-  deployment:
-    image:
-      pullPolicy: Always
-    replicaCount: 1
-  config:
-    logQueries: "no"
+  rootDomain: de1.wpfq.fr
 
 unboundRecursive:
   deployment:
@@ -34,19 +7,21 @@ unboundRecursive:
       pullPolicy: Always
     replicaCount: 1
   config:
-    logQueries: "no"
+    logQueries: "yes"
+    cacheMinTtl: 3600
+    numThreads: 1
 
 dohProxy:
   deployment:
     image:
       pullPolicy: Always
-    replicaCount: 1
+    replicaCount: 2
 
-dohProxyBlocklist:
+dohProxyAGH:
   deployment:
     image:
       pullPolicy: Always
-    replicaCount: 1
+    replicaCount: 2
 
 agh:
   deployment:

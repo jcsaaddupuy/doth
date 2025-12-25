@@ -24,6 +24,8 @@ spec:
   replicas: {{ .Values.unboundRecursive.deployment.replicaCount | default 1}}
   template:
     metadata:
+      annotations:
+            checksum/unbound.conf: {{ tpl (.Files.Get "config/unbound/unbound.conf") .Values.unboundRecursive | sha256sum }}
       labels:
         run: {{ .Values.unboundRecursive.serviceName }}
     spec:

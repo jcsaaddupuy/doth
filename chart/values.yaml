@@ -3,7 +3,7 @@ unboundRecursive:
   serviceName: unbound-recursive
   config:
     verbosity: 1
-    logQueries: "yes"
+    logQueries: "no"
 
     trustAnchorFile: "/etc/unbound/data/root.key"
     rootHints: "/etc/unbound/data/root.hints"
@@ -31,91 +31,13 @@ unboundRecursive:
     targetPort: 53
     clusterIP: 10.96.0.53
 
-unbound:
-  # enabled: true
-  serviceName: unbound
-  enabled: "true"
-
-  config:
-    verbosity: 0
-    logQueries: "yes"
-    interface: "0.0.0.0"
-    accessControl: "0.0.0.0/0 allow"
-    forwardZones:
-      - name: "."
-        forwardAddresses:
-          - 10.96.0.53@5300
-
-  deployment:
-    replicaCount: 1
-    image:
-      repository: alpinelinux/unbound:latest
-      pullPolicy: IfNotPresent
-
-    livenessProbe:
-      enabled: "false"
-      healthcheckDomain: cloudflare.com
-      initialDelaySeconds: 5
-      periodSeconds: 60
-
-  service:
-    type: ClusterIP
-    # #type:  LoadBalancer
-    port: 5300
-    targetPort: 53
-    clusterIP: 10.96.0.54
-    
-
-# Unbound configured with blocklists
-unboundBlocklist:
-  serviceName: unbound-blocklist
-  enabled: "true"
-
-  config:
-    verbosity: 1
-    logQueries: "yes"
-    interface: "0.0.0.0"
-    accessControl: "0.0.0.0/0 allow"
-    includes:
-      - "/etc/unbound/blocklists/blacklist.conf"
-    forwardZones:
-      - name: "."
-        # unbound auth clusterIP
-        forwardAddresses:
-          - 10.96.0.53@5300
-    
-    canaryDomain: 'blockme.localhost'
-
-    blocklists:
-      - name: StevenBlack
-        url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
-        # hostFileIpPattern: "0.0.0.0"
-
-
-  deployment:
-    replicaCount: 1
-    image:
-      repository: alpinelinux/unbound:latest
-      pullPolicy: IfNotPresent
-
-    livenessProbe:
-      enabled: "false"
-      healthcheckDomain: cloudflare.com
-      initialDelaySeconds: 5
-      periodSeconds: 60
-
-  service:
-    type: ClusterIP
-    port: 5300
-    targetPort: 53
-
 dohProxy:
   serviceName: doh-proxy
   enabled: "true"
   config:
     bindAddress: "0.0.0.0"
     listenAddress: "{{.Values.dohProxy.config.bindAddress}}:{{.Values.dohProxy.service.port}}"
-    serverAddress: "{{ .Values.unbound.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unbound.service.port }}"
+    serverAddress: "{{ .Values.unboundRecursive.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unboundRecursive.service.port }}"
 
   deployment:
     replicaCount: 1
@@ -128,27 +50,7 @@ dohProxy:
     port: 3000
     protocol: TCP
 
-dohProxyBlocklist:
-  serviceName: doh-proxy-blocklist
-  enabled: "true"
 
-  config:
-    bindAddress: "0.0.0.0"
-    listenAddress: "{{.Values.dohProxyBlocklist.config.bindAddress}}:{{.Values.dohProxyBlocklist.service.port}}"
-    serverAddress: "{{ .Values.unboundBlocklist.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.unboundBlocklist.service.port }}"
-
-
-  deployment:
-    replicaCount: 1
-    image:
-      repository: jcsaaddupuy/doh-server:latest
-      pullPolicy: IfNotPresent
-
-  service:
-    type: ClusterIP
-    port: 3000
-    protocol: TCP
- 
 
 agh:
   serviceName: agh
@@ -176,6 +78,26 @@ agh:
         port: 80
         targetPort: 80
 
+dohProxyAGH:
+  serviceName: doh-proxy-agh
+  enabled: "true"
+
+  config:
+    bindAddress: "0.0.0.0"
+    listenAddress: "{{.Values.dohProxyAGH.config.bindAddress}}:{{.Values.dohProxyAGH.service.port}}"
+    serverAddress: "{{ .Values.agh.serviceName }}.{{ .Release.Namespace }}.svc.cluster.local:{{ .Values.agh.services.dns.port }}"
+
+
+  deployment:
+    replicaCount: 1
+    image:
+      repository: jcsaaddupuy/doh-server:latest
+      pullPolicy: IfNotPresent
+
+  service:
+    type: ClusterIP
+    port: 3000
+    protocol: TCP
 
 
 ingress:
@@ -204,15 +126,10 @@ ingress:
     - host: "ns2.{{.Values.ingress.rootDomain}}"
       enabled: "true"
       paths:
-        - path: /
+        - path: /dns-query
           backend:
-              serviceName: "{{ .Values.dohProxyBlocklist.serviceName }}"
-              servicePort: "{{ int .Values.dohProxyBlocklist.service.port }}"
-
-
-    - host: "ns3.{{.Values.ingress.rootDomain}}"
-      enabled: "true"
-      paths:
+              serviceName: "{{ .Values.dohProxyAGH.serviceName }}"
+              servicePort: "{{ int .Values.dohProxyAGH.service.port }}"
         - path: /
           backend:
               serviceName: "{{ .Values.agh.serviceName }}"
@@ -222,7 +139,8 @@ tcp:
    enabled: "true"
    routes:
     - name: tcp-tls
-      tls: "true"
+      # tls: "true"
+      tls: "false"
       secretName: "{{.Values.ingress.name}}-tls"
       services:
         - name: ns1-tcp
@@ -230,19 +148,11 @@ tcp:
           port: 853
           
           backend:
-            serviceName:  "{{ .Values.unbound.serviceName }}"
-            servicePort: "{{int .Values.unbound.service.port }}"
+            serviceName:  "{{ .Values.unboundRecursive.serviceName }}"
+            servicePort: "{{int .Values.unboundRecursive.service.port }}"
 
         - name: ns2-tcp
           host: "ns2.{{.Values.ingress.rootDomain}}"
-          port: 853
-
-          backend:
-            serviceName: "{{ .Values.unboundBlocklist.serviceName }}"
-            servicePort: "{{ int .Values.unboundBlocklist.service.port }}"
-
-        - name: ns3-tcp
-          host: "ns3.{{.Values.ingress.rootDomain}}"
           port: 853
 
           backend:
@@ -251,7 +161,7 @@ tcp:
 
 
 udp:
-   enabled: "true"
+   enabled: "false"
    routes:
     - name: dns-udp
       services:
@@ -269,34 +179,22 @@ cronjobs:
     enabled: "true"
     timeZone: "Europe/Paris"
     schedule: "0 6 * * *"
-    restartServiceName: "deploymeny/unbound-recursive"
+    restartServiceName: "deployment/unbound-recursive"
   
-  - name: "restart-unbound"
+  - name: "restart-doh-proxy"
     enabled: "true"
     timeZone: "Europe/Paris"
-    schedule: "1 6 * * *"
-    restartServiceName: "deploymeny/unbound"
+    schedule: "3 6 * * *"
+    restartServiceName: "deployment/doh-proxy"
 
-  - name: "restart-unbound-blocklist"
+  - name: "restart-doh-proxy-agh"
     enabled: "true"
     timeZone: "Europe/Paris"
-    schedule: "2 6 * * *"
-    restartServiceName: "deploymeny/unbound-blocklist"
-
-  # - name: "restart-doh-proxy"
-  #   enabled: "true"
-  #   timeZone: "Europe/Paris"
-  #   schedule: "3 6 * * *"
-  #   restartServiceName: "deploymeny/doh-proxy"
-
-  # - name: "restart-doh-proxy-blocklist"
-  #   enabled: "true"
-  #   timeZone: "Europe/Paris"
-  #   schedule: "5 4 * * *"
-  #   restartServiceName: "deploymeny/doh-proxy-blocklist"
+    schedule: "5 4 * * *"
+    restartServiceName: "deployment/doh-proxy-agh"
 
   - name: "restart-agh"
     enabled: "true"
     timeZone: "Europe/Paris"
     schedule: "5 6 * * *"
-    restartServiceName: "deploymeny/agh"
+    restartServiceName: "deployment/agh"

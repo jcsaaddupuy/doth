@@ -24,9 +24,7 @@ spec:
   rules:
    {{- range .services }}
   - port: {{.port}}
-    {{- if eq ( $route.tls | toString) "true" }}
     host:  {{ tpl .host $dot }}
-    {{- end }}
     backend:
       serviceName:  {{ tpl .backend.serviceName $dot }}
       servicePort: {{ tpl .backend.servicePort $dot }}

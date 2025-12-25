@@ -24,18 +24,6 @@ spec:
     requests:
       storage: 1Gi
   volumeName: adguard-volume-pv
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: "{{ .Values.agh.serviceName }}-configmap"
-  labels:
-    app: {{ .Values.agh.serviceName }}
-  annotations:
-        checksum/AdGuardHome.yaml: {{ tpl (.Files.Get "config/agh/AdGuardHome.yaml") .Values.agh | sha256sum }}
-data:
-  AdGuardHome.yaml: |-
-{{ tpl (.Files.Get "config/agh/AdGuardHome.yaml") .Values.agh | nindent 4 }}
 
 --- 
 apiVersion: apps/v1
@@ -62,12 +50,12 @@ spec:
             "--config", "/opt/adguardhome/volume/AdGuardHome.yaml"
             ]
           ports:
-            - containerPort: {{ .Values.agh.services.dns.port }}
+            - containerPort: {{ .Values.agh.services.dns.targetPort }}
               protocol: UDP
-              name: 'udp-{{ .Values.agh.services.dns.port }}'
-            - containerPort: {{ .Values.agh.services.dns.port }}
+              name: 'udp-{{ .Values.agh.services.dns.targetPort }}'
+            - containerPort: {{ .Values.agh.services.dns.targetPort }}
               protocol: TCP
-              name: 'tcp-{{ .Values.agh.services.dns.port }}'
+              name: 'tcp-{{ .Values.agh.services.dns.targetPort }}'
             - containerPort: {{ .Values.agh.services.httpAdmin.port }}
               protocol: TCP
               name: 'tcp-{{ .Values.agh.services.httpAdmin.port }}'
@@ -96,14 +84,7 @@ spec:
           - name: adguard-volume
             mountPath: /opt/adguardhome/volume
 
-          # - name: {{ .Values.agh.serviceName }}-volume
-          #   mountPath: /opt/adguardhome/conf/AdGuardHome.yaml
-          #   subPath: AdGuardHome.yaml
-
       volumes:
-        # - name: {{ .Values.agh.serviceName }}-volume
-        #   configMap:
-        #     name: {{ .Values.agh.serviceName }}-configmap
         - name: adguard-volume
           persistentVolumeClaim:
             claimName: adguard-volume-pvc

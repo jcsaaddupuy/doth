@@ -6,7 +6,7 @@ kind: Ingress
 metadata:
   name:  {{ .Values.ingress.name }}
   annotations:
-    konghq.com/strip-path: 'true'
+    konghq.com/strip-path: 'false'
     {{- if eq .Values.ingress.tls.enabled "true" }}
     cert-manager.io/issuer: {{ .Values.ingress.certManager.issuer | default "letsencrypt-staging" | quote }}
     {{- end }}
@@ -31,7 +31,7 @@ spec:
       http:
         paths:
           {{- range .paths }} 
-          - path: /
+          - path: {{.path}}
             pathType: Prefix
             backend:
               service:

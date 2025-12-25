@@ -1,0 +1,42 @@
+{{- if eq (.Values.dohProxyAGH.enabled | toString) "true" -}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.dohProxyAGH.serviceName }}
+spec:
+  selector:
+    matchLabels:
+      run: {{ .Values.dohProxyAGH.serviceName }}
+  replicas: {{ .Values.dohProxyAGH.deployment.replicaCount }}
+  template:
+    metadata:
+      labels:
+        run: {{ .Values.dohProxyAGH.serviceName }}
+    spec:
+      containers:
+        - name: {{ .Values.dohProxyAGH.serviceName }}
+          image: {{ .Values.dohProxyAGH.deployment.image.repository }}
+          command:
+              [
+              "doh-proxy", 
+              "--listen-address={{ tpl (.Values.dohProxyAGH.config.listenAddress) . }}",
+              "--server-address={{ tpl (.Values.dohProxyAGH.config.serverAddress) . }}"
+            ]
+          ports:
+            - containerPort: {{ .Values.dohProxyAGH.service.port }}
+              protocol: TCP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Values.dohProxyAGH.serviceName }}
+  labels:
+    run: {{ .Values.dohProxyAGH.serviceName }}
+spec:
+  ports:
+    - port: {{ .Values.dohProxyAGH.service.port }}
+      protocol: TCP
+  selector:
+    run: {{ .Values.dohProxyAGH.serviceName }}
+{{- end }}
